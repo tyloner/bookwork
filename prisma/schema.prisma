@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth Models ─────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core Models ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  bio           String?   @db.Text
+  location      String?
+  language      String    @default("en")
+
+  // Reading preferences
+  favoriteGenres  String[]  @default([])
+  currentlyReading String?
+  readingGoal     Int       @default(12)
+  booksReadThisYear Int     @default(0)
+
+  // Subscription
+  tier            SubscriptionTier @default(FREE)
+  stripeCustomerId String?  @unique
+  stripeSubId      String?  @unique
+  tierExpiresAt    DateTime?
+
+  // Matching
+  matchesLeftToday Int      @default(5)
+  lastMatchReset   DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  spaces        SpaceMember[]
+  ownedSpaces   Space[]        @relation("SpaceOwner")
+  messages      Message[]
+  sentMatches   Match[]        @relation("MatchSender")
+  receivedMatches Match[]      @relation("MatchReceiver")
+  userBooks     UserBook[]
+  notifications Notification[]
+}
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  author      String
+  isbn        String?  @unique
+  coverUrl    String?
+  description String?  @db.Text
+  genre       String[]
+  pageCount   Int?
+  publishedAt DateTime?
+  language    String   @default("en")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  spaces    Space[]
+  userBooks UserBook[]
+
+  @@index([title])
+  @@index([author])
+}
+
+model UserBook {
+  id        String         @id @default(cuid())
+  userId    String
+  bookId    String
+  status    ReadingStatus  @default(READING)
+  progress  Int            @default(0) // percentage
+  startedAt DateTime       @default(now())
+  finishedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@index([bookId])
+}
+
+enum ReadingStatus {
+  WANT_TO_READ
+  READING
+  FINISHED
+  ABANDONED
+}
+
+// ─── Spaces (Discussion Rooms) ──────────────────────────────
+
+model Space {
+  id          String    @id @default(cuid())
+  name        String
+  description String?   @db.Text
+  bookId      String
+  ownerId     String
+  type        SpaceType @default(CHAT)
+  isActive    Boolean   @default(true)
+  maxMembers  Int       @default(20)
+  language    String    @default("en")
+  genre       String[]
+  coverImage  String?
+
+  // For scheduled calls
+  scheduledAt DateTime?
+  duration    Int?      // minutes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  book    Book          @relation(fields: [bookId], references: [id])
+  owner   User          @relation("SpaceOwner", fields: [ownerId], references: [id])
+  members SpaceMember[]
+  messages Message[]
+
+  @@index([bookId])
+  @@index([ownerId])
+  @@index([isActive])
+  @@index([genre])
+  @@index([language])
+  @@index([createdAt])
+}
+
+enum SpaceType {
+  CHAT
+  CALL
+  HYBRID
+}
+
+model SpaceMember {
+  id       String          @id @default(cuid())
+  userId   String
+  spaceId  String
+  role     SpaceMemberRole @default(MEMBER)
+  joinedAt DateTime        @default(now())
+  isMuted  Boolean         @default(false)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, spaceId])
+  @@index([userId])
+  @@index([spaceId])
+}
+
+enum SpaceMemberRole {
+  OWNER
+  MODERATOR
+  MEMBER
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  content   String      @db.Text
+  type      MessageType @default(TEXT)
+  userId    String
+  spaceId   String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId, createdAt])
+  @@index([userId])
+}
+
+enum MessageType {
+  TEXT
+  SYSTEM
+  IMAGE
+}
+
+// ─── Matching System ────────────────────────────────────────
+
+model Match {
+  id         String      @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     MatchStatus @default(PENDING)
+  bookContext String?    // what book connected them
+  message    String?     @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sender   User @relation("MatchSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("MatchReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+enum MatchStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+// ─── Notifications ──────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  MATCH_REQUEST
+  MATCH_ACCEPTED
+  NEW_MESSAGE
+  SPACE_INVITE
+  SUBSCRIPTION
+  SYSTEM
+}

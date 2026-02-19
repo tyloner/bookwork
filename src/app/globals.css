@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: 254 253 251;
+    --color-surface: 253 249 240;
+    --color-text: 28 25 23;
+    --color-text-muted: 120 113 108;
+    --color-border: 214 211 209;
+    --color-accent: 107 125 99;
+    --color-accent-hover: 85 100 73;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-cream-50 text-ink-900 font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-ink-200 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-300;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2.5
+           bg-sage-600 text-white font-medium rounded-lg
+           hover:bg-sage-700 active:bg-sage-800
+           transition-colors duration-150 ease-in-out
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2.5
+           bg-cream-200 text-ink-800 font-medium rounded-lg
+           border border-ink-200
+           hover:bg-cream-300 active:bg-cream-400
+           transition-colors duration-150 ease-in-out
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2.5
+           text-ink-600 font-medium rounded-lg
+           hover:bg-ink-50 active:bg-ink-100
+           transition-colors duration-150 ease-in-out;
+  }
+
+  .card {
+    @apply bg-white rounded-xl border border-ink-100
+           shadow-book hover:shadow-book-hover
+           transition-shadow duration-200;
+  }
+
+  .input-field {
+    @apply w-full px-3.5 py-2.5 rounded-lg
+           bg-white border border-ink-200
+           text-ink-900 placeholder:text-ink-300
+           focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent
+           transition-all duration-150;
+  }
+
+  .chip {
+    @apply inline-flex items-center px-3 py-1 rounded-full
+           text-sm font-medium bg-cream-200 text-ink-700
+           border border-cream-400
+           hover:bg-cream-300 transition-colors cursor-pointer;
+  }
+
+  .chip-active {
+    @apply bg-sage-600 text-white border-sage-600 hover:bg-sage-700;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full
+           text-xs font-semibold;
+  }
+
+  .badge-live {
+    @apply bg-red-100 text-red-700;
+  }
+
+  .badge-active {
+    @apply bg-emerald-100 text-emerald-700;
+  }
+
+  .badge-premium {
+    @apply bg-amber-100 text-amber-700;
+  }
+
+  /* Swipe card styles */
+  .swipe-card {
+    @apply absolute inset-0 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing;
+    touch-action: none;
+  }
+
+  .swipe-card-like {
+    @apply absolute top-8 left-8 px-4 py-2 rounded-lg
+           border-4 border-emerald-500 text-emerald-500
+           font-bold text-2xl rotate-[-20deg] opacity-0;
+  }
+
+  .swipe-card-nope {
+    @apply absolute top-8 right-8 px-4 py-2 rounded-lg
+           border-4 border-red-500 text-red-500
+           font-bold text-2xl rotate-[20deg] opacity-0;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
