@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BookWork — Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream-50: #FEFDFB; --cream-100: #FDF9F0; --cream-200: #FAF0DC;
+    --ink-50: #F5F5F4; --ink-100: #E7E5E4; --ink-200: #D6D3D1; --ink-300: #A8A29E;
+    --ink-400: #78716C; --ink-500: #57534E; --ink-600: #44403C; --ink-700: #36312D;
+    --ink-800: #292524; --ink-900: #1C1917;
+    --sage-50: #F6F7F5; --sage-100: #E8EBE5; --sage-200: #D4DAD0;
+    --sage-400: #8E9D87; --sage-500: #6B7D63; --sage-600: #556449; --sage-700: #434F3A;
+    --amber-50: #FFFBEB; --amber-100: #FEF3C7; --amber-200: #FDE68A;
+    --amber-500: #F59E0B; --amber-600: #D97706;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f1f0ee; color: var(--ink-900); -webkit-font-smoothing: antialiased; }
+  .serif { font-family: 'Playfair Display', Georgia, serif; }
+
+  /* Navigation */
+  .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: white; border-bottom: 1px solid var(--ink-100); padding: 12px 20px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .nav-btn { padding: 8px 16px; border: none; background: none; font-size: 13px; font-weight: 500; color: var(--ink-400); cursor: pointer; border-radius: 8px; transition: all .2s; font-family: inherit; }
+  .nav-btn:hover { background: var(--ink-50); color: var(--ink-700); }
+  .nav-btn.active { background: var(--sage-600); color: white; }
+
+  /* Screens */
+  .screen { display: none; margin-top: 56px; min-height: calc(100vh - 56px); }
+  .screen.active { display: block; }
+
+  /* ===== HOME SCREEN ===== */
+  .app-layout { display: flex; min-height: calc(100vh - 56px); }
+  .sidebar { width: 272px; background: white; border-right: 1px solid var(--ink-100); padding: 0; flex-shrink: 0; display: flex; flex-direction: column; height: calc(100vh - 56px); position: sticky; top: 56px; }
+  .sidebar-header { padding: 16px 20px; border-bottom: 1px solid var(--ink-100); display: flex; align-items: center; gap: 10px; }
+  .sidebar-header svg { color: var(--sage-600); }
+  .sidebar-header span { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; }
+  .create-btn { margin: 16px 16px 0; padding: 10px; background: var(--sage-600); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; }
+  .create-btn:hover { background: var(--sage-700); }
+  .nav-items { padding: 12px 12px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--ink-500); text-decoration: none; margin-bottom: 2px; cursor: pointer; }
+  .nav-item:hover { background: var(--ink-50); color: var(--ink-700); }
+  .nav-item.active { background: var(--sage-50); color: var(--sage-700); }
+  .nav-item .badge { margin-left: auto; background: #FEE2E2; color: #DC2626; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; }
+  .premium-card { margin: 0 16px 12px; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, var(--amber-50), var(--amber-100)); border: 1px solid var(--amber-200); }
+  .premium-card h4 { font-size: 12px; font-weight: 600; color: #92400E; display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .premium-card p { font-size: 11px; color: #A16207; line-height: 1.5; }
+  .sidebar-user { padding: 16px; border-top: 1px solid var(--ink-100); display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--sage-200); color: var(--sage-700); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .avatar.lg { width: 48px; height: 48px; font-size: 16px; }
+  .avatar.xl { width: 80px; height: 80px; font-size: 24px; }
+  .sidebar-user .info { flex: 1; min-width: 0; }
+  .sidebar-user .info p { font-size: 13px; font-weight: 500; color: var(--ink-900); }
+  .sidebar-user .info span { font-size: 11px; color: var(--ink-400); }
+
+  .main-content { flex: 1; padding: 24px; max-width: 720px; margin: 0 auto; }
+  .welcome-banner { background: linear-gradient(135deg, var(--sage-50), var(--cream-100)); border: 1px solid var(--sage-200); border-radius: 12px; padding: 16px; display: flex; gap: 12px; margin-bottom: 20px; }
+  .welcome-icon { width: 36px; height: 36px; background: var(--sage-100); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--sage-600); }
+  .welcome-banner h3 { font-size: 13px; font-weight: 600; color: var(--ink-800); margin-bottom: 2px; }
+  .welcome-banner p { font-size: 12px; color: var(--ink-500); line-height: 1.5; }
+
+  /* Search + Filters */
+  .search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .search-input { flex: 1; position: relative; }
+  .search-input input { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--ink-200); border-radius: 8px; font-size: 13px; background: white; outline: none; font-family: inherit; }
+  .search-input input:focus { border-color: var(--sage-400); box-shadow: 0 0 0 3px rgba(107,125,99,0.1); }
+  .search-input svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-300); }
+  .filter-btn { padding: 10px 16px; border: 1px solid var(--ink-200); background: white; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--ink-600); cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: inherit; }
+  .chips { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .chip { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--cream-200); color: var(--ink-700); border: 1px solid #EED5A2; cursor: pointer; transition: all .15s; }
+  .chip:hover { background: #EED5A2; }
+  .chip.active { background: var(--sage-600); color: white; border-color: var(--sage-600); }
+
+  /* Space Cards */
+  .space-card { background: white; border: 1px solid var(--ink-100); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 4px 4px 0 rgba(28,25,23,0.06); transition: all .2s; cursor: pointer; }
+  .space-card:hover { box-shadow: 6px 6px 0 rgba(28,25,23,0.1); border-color: var(--sage-200); }
+  .space-card-inner { display: flex; gap: 14px; }
+  .book-cover { width: 56px; height: 84px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: 600; text-align: center; line-height: 1.2; padding: 4px; }
+  .space-card h3 { font-size: 14px; font-weight: 600; color: var(--ink-900); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .type-badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .type-chat { background: #ECFDF5; color: #059669; }
+  .type-call { background: #FEF2F2; color: #DC2626; }
+  .type-hybrid { background: #EFF6FF; color: #2563EB; }
+  .space-card .book-info { font-size: 12px; color: var(--ink-500); margin-bottom: 6px; }
+  .space-card .book-info b { color: var(--ink-600); font-weight: 500; }
+  .space-card .desc { font-size: 12px; color: var(--ink-400); line-height: 1.5; margin-bottom: 8px; }
+  .genre-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+  .genre-tag { padding: 2px 8px; border-radius: 10px; background: var(--cream-100); color: var(--ink-500); font-size: 10px; font-weight: 500; }
+  .space-meta { display: flex; align-items: center; justify-content: space-between; }
+  .space-stats { display: flex; gap: 12px; }
+  .space-stat { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-400); }
+  .space-owner { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-500); }
+  .space-owner .avatar { width: 24px; height: 24px; font-size: 10px; }
+
+  /* ===== MATCHES SCREEN ===== */
+  .matches-container { max-width: 420px; margin: 0 auto; padding: 24px 16px; }
+  .tab-bar { display: flex; background: var(--ink-50); border-radius: 8px; padding: 4px; margin-bottom: 20px; }
+  .tab { flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; color: var(--ink-500); display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .15s; }
+  .tab.active { background: white; color: var(--ink-900); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .match-counter { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; margin-bottom: 16px; }
+  .match-counter span { font-size: 13px; color: var(--ink-500); }
+  .match-counter b { color: var(--ink-700); }
+  .match-counter a { font-size: 12px; color: var(--amber-600); text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+
+  .swipe-card { background: white; border-radius: 16px; border: 1px solid var(--ink-100); box-shadow: 0 10px 40px rgba(0,0,0,0.08); overflow: hidden; }
+  .swipe-header { background: linear-gradient(135deg, var(--sage-100), var(--cream-100), var(--amber-50)); padding: 24px; display: flex; align-items: center; gap: 16px; }
+  .swipe-header .avatar { width: 72px; height: 72px; font-size: 22px; ring: 4px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .swipe-header h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; }
+  .swipe-header .location { font-size: 12px; color: var(--ink-500); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+  .swipe-header .books-count { font-size: 11px; color: var(--ink-500); display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+  .swipe-body { padding: 20px; }
+  .swipe-bio { font-size: 13px; color: var(--ink-600); line-height: 1.6; font-style: italic; margin-bottom: 16px; }
+  .shared-books { background: var(--sage-50); border: 1px solid var(--sage-200); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+  .shared-books h4 { font-size: 11px; font-weight: 600; color: var(--sage-700); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .shared-book { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-700); padding: 4px 0; }
+  .shared-book b { font-weight: 500; }
+  .shared-book span { color: var(--ink-400); }
+  .reading-section h4 { font-size: 11px; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .reading-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--cream-50); border-radius: 8px; margin-bottom: 6px; }
+  .reading-item .book-mini { width: 32px; height: 44px; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 9px; color: white; font-weight: 600; }
+  .reading-item .info { flex: 1; }
+  .reading-item .info p { font-size: 13px; font-weight: 500; color: var(--ink-800); }
+  .reading-item .info span { font-size: 11px; color: var(--ink-400); }
+  .progress-bar { height: 4px; background: var(--ink-100); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--sage-500); border-radius: 2px; }
+  .reading-item .pct { font-size: 11px; color: var(--ink-400); flex-shrink: 0; }
+  .swipe-actions { display: flex; align-items: center; justify-content: center; gap: 24px; padding: 16px; border-top: 1px solid var(--ink-100); }
+  .swipe-btn { border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .swipe-btn.pass { width: 52px; height: 52px; border: 2px solid #FCA5A5; background: white; color: #F87171; }
+  .swipe-btn.pass:hover { background: #FEF2F2; }
+  .swipe-btn.like { width: 60px; height: 60px; background: var(--sage-600); color: white; box-shadow: 0 4px 12px rgba(107,125,99,0.3); }
+  .swipe-btn.like:hover { background: var(--sage-700); transform: scale(1.05); }
+
+  /* ===== PREMIUM SCREEN ===== */
+  .premium-container { max-width: 480px; margin: 0 auto; padding: 32px 16px; text-align: center; }
+  .premium-icon { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--amber-100), var(--amber-200)); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px; }
+  .premium-container h1 { font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 8px; }
+  .premium-container > p { font-size: 14px; color: var(--ink-500); margin-bottom: 24px; line-height: 1.5; }
+  .plan-toggle { display: flex; gap: 12px; margin-bottom: 20px; }
+  .plan-option { flex: 1; padding: 16px; border-radius: 12px; border: 2px solid var(--ink-100); text-align: left; cursor: pointer; transition: all .15s; position: relative; background: white; }
+  .plan-option.selected { border-color: var(--sage-500); background: var(--sage-50); }
+  .plan-option .label { font-size: 13px; font-weight: 500; color: var(--ink-900); }
+  .plan-option .price { font-size: 24px; font-weight: 700; color: var(--ink-900); margin-top: 4px; }
+  .plan-option .price span { font-size: 13px; font-weight: 400; color: var(--ink-400); }
+  .plan-option .sub { font-size: 11px; color: var(--ink-400); margin-top: 2px; }
+  .save-badge { position: absolute; top: -10px; right: 12px; background: var(--amber-100); color: #92400E; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .subscribe-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: linear-gradient(90deg, var(--amber-500), var(--amber-600)); color: white; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(245,158,11,0.3); margin-bottom: 6px; font-family: inherit; }
+  .subscribe-btn:hover { filter: brightness(1.05); }
+  .cancel-note { font-size: 10px; color: var(--ink-300); margin-bottom: 32px; }
+  .features-list { text-align: left; }
+  .features-list h3 { font-size: 13px; font-weight: 600; color: var(--ink-800); margin-bottom: 12px; }
+  .feature-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+  .feature-icon { width: 32px; height: 32px; background: var(--amber-50); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+  .feature-row span { font-size: 13px; color: var(--ink-700); }
+
+  /* Comparison table */
+  .comparison { margin-top: 32px; background: white; border: 1px solid var(--ink-100); border-radius: 12px; overflow: hidden; box-shadow: 4px 4px 0 rgba(28,25,23,0.06); }
+  .comparison table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .comparison th { padding: 12px; font-weight: 500; color: var(--ink-500); border-bottom: 1px solid var(--ink-100); }
+  .comparison th:last-child { color: var(--amber-600); background: rgba(254,243,199,0.3); }
+  .comparison td { padding: 10px 12px; border-bottom: 1px solid var(--ink-50); color: var(--ink-600); }
+  .comparison td:first-child { text-align: left; }
+  .comparison td:nth-child(2) { text-align: center; color: var(--ink-400); }
+  .comparison td:last-child { text-align: center; font-weight: 500; color: var(--sage-700); background: rgba(254,243,199,0.15); }
+
+  /* ===== SIGNIN SCREEN ===== */
+  .signin-layout { display: flex; min-height: calc(100vh - 56px); }
+  .signin-left { flex: 1; background: var(--ink-900); color: var(--cream-50); padding: 48px; display: flex; flex-direction: column; justify-content: space-between; }
+  .signin-left .logo { display: flex; align-items: center; gap: 10px; }
+  .signin-left .logo span { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; }
+  .signin-left blockquote { font-family: 'Playfair Display', serif; font-size: 20px; line-height: 1.5; color: #FAF0DC; }
+  .signin-left .author { font-size: 13px; color: var(--ink-400); margin-top: 8px; }
+  .signin-stats { display: flex; gap: 16px; margin-top: 32px; }
+  .stat-card { background: var(--ink-800); border-radius: 8px; padding: 14px; flex: 1; }
+  .stat-card .num { font-size: 20px; font-weight: 700; color: var(--sage-400); }
+  .stat-card .label { font-size: 11px; color: var(--ink-400); }
+  .signin-right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px; background: var(--cream-50); }
+  .signin-form { width: 100%; max-width: 380px; }
+  .signin-form h1 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 4px; }
+  .signin-form > p { font-size: 13px; color: var(--ink-400); margin-bottom: 24px; }
+  .sso-btn { width: 100%; padding: 11px; border: 1px solid var(--ink-200); background: white; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--ink-800); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; font-family: inherit; }
+  .sso-btn:hover { background: var(--ink-50); }
+  .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+  .divider span { font-size: 12px; color: var(--ink-400); }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--ink-200); }
+  .form-group { margin-bottom: 12px; position: relative; }
+  .form-group input { width: 100%; padding: 10px 12px 10px 38px; border: 1px solid var(--ink-200); border-radius: 8px; font-size: 13px; background: white; outline: none; font-family: inherit; }
+  .form-group input:focus { border-color: var(--sage-400); box-shadow: 0 0 0 3px rgba(107,125,99,0.1); }
+  .form-group svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-300); }
+  .submit-btn { width: 100%; padding: 11px; background: var(--sage-600); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; }
+  .submit-btn:hover { background: var(--sage-700); }
+  .form-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--ink-400); }
+  .form-switch a { color: var(--sage-600); font-weight: 500; text-decoration: none; cursor: pointer; }
+
+  /* ===== CHAT SCREEN ===== */
+  .chat-layout { display: flex; flex-direction: column; height: calc(100vh - 56px); }
+  .chat-header { padding: 12px 16px; background: white; border-bottom: 1px solid var(--ink-100); display: flex; align-items: center; gap: 12px; }
+  .chat-header .info h3 { font-size: 14px; font-weight: 600; }
+  .chat-header .info p { font-size: 11px; color: var(--ink-400); display: flex; align-items: center; gap: 8px; }
+  .chat-header .actions { margin-left: auto; display: flex; gap: 4px; }
+  .chat-header .actions button { padding: 8px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; }
+  .call-btn { background: #ECFDF5; color: #059669; }
+  .info-btn { background: var(--ink-50); color: var(--ink-500); }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .chat-intro { text-align: center; padding: 16px 0; }
+  .chat-intro .icon { width: 48px; height: 48px; background: var(--sage-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: var(--sage-600); font-size: 18px; }
+  .chat-intro h3 { font-size: 14px; font-family: 'Playfair Display', serif; color: var(--ink-700); }
+  .chat-intro p { font-size: 11px; color: var(--ink-400); margin-top: 4px; }
+  .message { display: flex; gap: 8px; max-width: 75%; animation: fadeIn .3s ease; }
+  .message.own { margin-left: auto; flex-direction: row-reverse; }
+  .message .avatar { width: 28px; height: 28px; font-size: 10px; margin-top: 2px; }
+  .message .bubble { padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.5; }
+  .message:not(.own) .bubble { background: var(--ink-50); color: var(--ink-800); border-bottom-left-radius: 4px; }
+  .message.own .bubble { background: var(--sage-600); color: white; border-bottom-right-radius: 4px; }
+  .message .name { font-size: 10px; font-weight: 500; color: var(--ink-400); margin-bottom: 2px; margin-left: 4px; }
+  .message .time { font-size: 10px; color: var(--ink-300); margin-top: 2px; margin-left: 4px; }
+  .message.own .time { text-align: right; margin-right: 4px; }
+  .chat-input { padding: 12px 16px; border-top: 1px solid var(--ink-100); background: white; display: flex; gap: 8px; align-items: flex-end; }
+  .chat-input textarea { flex: 1; padding: 10px 14px; border: 1px solid var(--ink-200); border-radius: 12px; font-size: 13px; resize: none; outline: none; min-height: 40px; max-height: 80px; font-family: inherit; }
+  .chat-input textarea:focus { border-color: var(--sage-400); }
+  .send-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--sage-600); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* ===== PROFILE SCREEN ===== */
+  .profile-container { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
+  .profile-card { background: white; border: 1px solid var(--ink-100); border-radius: 12px; padding: 24px; text-align: center; box-shadow: 4px 4px 0 rgba(28,25,23,0.06); margin-bottom: 16px; }
+  .profile-card .avatar { margin: 0 auto 12px; box-shadow: 0 0 0 4px var(--cream-200); }
+  .profile-card h2 { font-family: 'Playfair Display', serif; font-size: 20px; }
+  .profile-card .email { font-size: 12px; color: var(--ink-400); }
+  .profile-card .location { font-size: 11px; color: var(--ink-400); display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
+  .upgrade-pill { display: inline-flex; align-items: center; gap: 4px; margin-top: 10px; padding: 6px 12px; background: var(--amber-50); border: 1px solid var(--amber-200); border-radius: 20px; font-size: 11px; font-weight: 500; color: #92400E; }
+  .info-card { background: white; border: 1px solid var(--ink-100); border-radius: 12px; padding: 16px; box-shadow: 4px 4px 0 rgba(28,25,23,0.06); margin-bottom: 16px; }
+  .info-card h4 { font-size: 11px; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .info-card p { font-size: 13px; color: var(--ink-600); line-height: 1.6; }
+  .goal-bar-container { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .goal-bar-container span { font-size: 11px; color: var(--ink-400); }
+  .goal-bar { height: 10px; background: var(--cream-200); border-radius: 5px; overflow: hidden; }
+  .goal-fill { height: 100%; background: linear-gradient(90deg, var(--sage-500), var(--sage-400)); border-radius: 5px; }
+  .goal-note { font-size: 11px; color: var(--ink-400); margin-top: 4px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stat-box { background: white; border: 1px solid var(--ink-100); border-radius: 12px; padding: 12px; text-align: center; box-shadow: 4px 4px 0 rgba(28,25,23,0.06); }
+  .stat-box .icon { color: var(--sage-500); font-size: 18px; margin-bottom: 4px; }
+  .stat-box .num { font-size: 18px; font-weight: 700; color: var(--ink-900); }
+  .stat-box .label { font-size: 10px; color: var(--ink-400); }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .signin-left { display: none; }
+    .signin-right { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Navigation -->
+<div class="nav">
+  <button class="nav-btn active" onclick="showScreen('home')">Home</button>
+  <button class="nav-btn" onclick="showScreen('chat')">Chat Room</button>
+  <button class="nav-btn" onclick="showScreen('matches')">Matches</button>
+  <button class="nav-btn" onclick="showScreen('profile')">Profile</button>
+  <button class="nav-btn" onclick="showScreen('premium')">Premium</button>
+  <button class="nav-btn" onclick="showScreen('signin')">Sign In</button>
+</div>
+
+<!-- ===== HOME ===== -->
+<div class="screen active" id="screen-home">
+  <div class="app-layout">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span>BookWork</span>
+      </div>
+      <button class="create-btn">+ Create Space</button>
+      <div class="nav-items">
+        <div class="nav-item active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          Home
+        </div>
+        <div class="nav-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Discover
+        </div>
+        <div class="nav-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          Matches
+        </div>
+        <div class="nav-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+          My Spaces
+        </div>
+        <div class="nav-item">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          Notifications
+          <span class="badge">3</span>
+        </div>
+      </div>
+      <div class="premium-card">
+        <h4>👑 Go Premium</h4>
+        <p>Unlimited matches &amp; spaces. No limits on your reading journey.</p>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar">YN</div>
+        <div class="info">
+          <p>Your Name</p>
+          <span>you@email.com</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="welcome-banner">
+        <div class="welcome-icon">📈</div>
+        <div>
+          <h3>Active conversations</h3>
+          <p>8 spaces are open right now. Join a discussion or create your own space to start reading together.</p>
+        </div>
+      </div>
+
+      <div class="search-row">
+        <div class="search-input">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Search books, authors, or spaces...">
+        </div>
+        <button class="filter-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/></svg>
+          Filters
+        </button>
+      </div>
+
+      <div class="chips">
+        <span class="chip active">All Types</span>
+        <span class="chip">Chat</span>
+        <span class="chip">Live Call</span>
+        <span class="chip">Hybrid</span>
+      </div>
+
+      <div class="space-card">
+        <div class="space-card-inner">
+          <div class="book-cover" style="background: linear-gradient(135deg, #434F3A, #6B7D63);">Kafka</div>
+          <div>
+            <h3>Deep dive into Kafka's Metamorphosis <span class="type-badge type-chat">💬 Chat</span></h3>
+            <div class="book-info"><b>The Metamorphosis</b> by Franz Kafka</div>
+            <div class="desc">Let's explore the themes of alienation, identity, and absurdism in Kafka's masterwork. Weekly discussions every Thursday.</div>
+            <div class="genre-tags"><span class="genre-tag">Fiction</span><span class="genre-tag">Philosophy</span></div>
+            <div class="space-meta">
+              <div class="space-stats">
+                <span class="space-stat">👥 12</span>
+                <span class="space-stat">💬 234</span>
+                <span class="space-stat">🕐 1h ago</span>
+              </div>
+              <div class="space-owner"><div class="avatar">ER</div> Elena R.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-card">
+        <div class="space-card-inner">
+          <div class="book-cover" style="background: linear-gradient(135deg, #92400E, #D97706);">Dune</div>
+          <div>
+            <h3>Dune Book Club — Live Discussion <span class="type-badge type-call">📞 Live Call</span></h3>
+            <div class="book-info"><b>Dune</b> by Frank Herbert</div>
+            <div class="desc">Reading Dune together chapter by chapter. Live calls every Sunday at 6pm EST.</div>
+            <div class="genre-tags"><span class="genre-tag">Science Fiction</span><span class="genre-tag">Fantasy</span></div>
+            <div class="space-meta">
+              <div class="space-stats">
+                <span class="space-stat">👥 18</span>
+                <span class="space-stat">💬 567</span>
+                <span class="space-stat">🕐 1d ago</span>
+              </div>
+              <div class="space-owner"><div class="avatar">MT</div> Marcus T.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-card">
+        <div class="space-card-inner">
+          <div class="book-cover" style="background: linear-gradient(135deg, #1E40AF, #3B82F6);">Sapiens</div>
+          <div>
+            <h3>Sapiens — History Lovers Unite <span class="type-badge type-hybrid">⚡ Chat &amp; Call</span></h3>
+            <div class="book-info"><b>Sapiens</b> by Yuval Noah Harari</div>
+            <div class="desc">Discussing Harari's perspective on the cognitive revolution and beyond.</div>
+            <div class="genre-tags"><span class="genre-tag">Non-Fiction</span><span class="genre-tag">History</span><span class="genre-tag">Science</span></div>
+            <div class="space-meta">
+              <div class="space-stats">
+                <span class="space-stat">👥 15</span>
+                <span class="space-stat">💬 189</span>
+                <span class="space-stat">🕐 2d ago</span>
+              </div>
+              <div class="space-owner"><div class="avatar">AK</div> Aisha K.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-card">
+        <div class="space-card-inner">
+          <div class="book-cover" style="background: linear-gradient(135deg, #7C3AED, #A78BFA);">PHM</div>
+          <div>
+            <h3>Project Hail Mary Readers <span class="type-badge type-chat">💬 Chat</span></h3>
+            <div class="book-info"><b>Project Hail Mary</b> by Andy Weir</div>
+            <div class="desc">Rocky approves this space. No spoilers past chapter 20 please!</div>
+            <div class="genre-tags"><span class="genre-tag">Science Fiction</span></div>
+            <div class="space-meta">
+              <div class="space-stats">
+                <span class="space-stat">👥 20</span>
+                <span class="space-stat">💬 412</span>
+                <span class="space-stat">🕐 2h ago</span>
+              </div>
+              <div class="space-owner"><div class="avatar">JL</div> James L.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-card">
+        <div class="space-card-inner">
+          <div class="book-cover" style="background: linear-gradient(135deg, #BE185D, #EC4899);">NW</div>
+          <div>
+            <h3>Norwegian Wood Reading Circle <span class="type-badge type-chat">💬 Chat</span></h3>
+            <div class="book-info"><b>Norwegian Wood</b> by Haruki Murakami</div>
+            <div class="desc">Murakami's prose deserves slow reading. Join us for a contemplative journey.</div>
+            <div class="genre-tags"><span class="genre-tag">Fiction</span><span class="genre-tag">Romance</span></div>
+            <div class="space-meta">
+              <div class="space-stats">
+                <span class="space-stat">👥 8</span>
+                <span class="space-stat">💬 98</span>
+                <span class="space-stat">🕐 3d ago</span>
+              </div>
+              <div class="space-owner"><div class="avatar">YS</div> Yuki S.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CHAT ===== -->
+<div class="screen" id="screen-chat">
+  <div class="chat-layout">
+    <div class="chat-header">
+      <div class="avatar" style="background: linear-gradient(135deg, #434F3A, #6B7D63); color: white; font-size: 12px;">FK</div>
+      <div class="info">
+        <h3>Deep dive into Kafka's Metamorphosis</h3>
+        <p>📖 The Metamorphosis &nbsp;·&nbsp; 👥 12 members</p>
+      </div>
+      <div class="actions">
+        <button class="call-btn">📞 Join Call</button>
+        <button class="info-btn">ℹ️</button>
+      </div>
+    </div>
+    <div class="chat-messages">
+      <div class="chat-intro">
+        <div class="icon">📖</div>
+        <h3>Deep dive into Kafka's Metamorphosis</h3>
+        <p>Let's explore themes of alienation, identity, and absurdism</p>
+      </div>
+      <div class="message">
+        <div class="avatar">ER</div>
+        <div>
+          <div class="name">Elena R.</div>
+          <div class="bubble">Just started reading this today — the first chapter is incredible! The way Kafka drops you right into the absurdity without any preamble is masterful.</div>
+          <div class="time">2h ago</div>
+        </div>
+      </div>
+      <div class="message">
+        <div class="avatar" style="background: #FDE68A; color: #92400E;">MT</div>
+        <div>
+          <div class="name">Marcus T.</div>
+          <div class="bubble">The way the author builds the world is so immersive. I couldn't put it down. The family dynamics are what really got me.</div>
+          <div class="time">1h ago</div>
+        </div>
+      </div>
+      <div class="message">
+        <div class="avatar" style="background: #DBEAFE; color: #1E40AF;">AK</div>
+        <div>
+          <div class="name">Aisha K.</div>
+          <div class="bubble">Has anyone reached chapter 5 yet? Things really pick up there. The sister's character development is fascinating.</div>
+          <div class="time">30m ago</div>
+        </div>
+      </div>
+      <div class="message">
+        <div class="avatar">ER</div>
+        <div>
+          <div class="name">Elena R.</div>
+          <div class="bubble">I'm on chapter 3 still — trying to savor it. The prose is beautiful even in translation.</div>
+          <div class="time">15m ago</div>
+        </div>
+      </div>
+      <div class="message own">
+        <div>
+          <div class="bubble">Completely agree. Should we do a live call this weekend to discuss the first half? I have some thoughts about the symbolism of the room.</div>
+          <div class="time">5m ago</div>
+        </div>
+      </div>
+      <div class="message">
+        <div class="avatar" style="background: #FDE68A; color: #92400E;">MT</div>
+        <div>
+          <div class="name">Marcus T.</div>
+          <div class="bubble">Yes! Saturday afternoon works for me. Let's schedule it 🙌</div>
+          <div class="time">2m ago</div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input">
+      <textarea placeholder="Type a message..." rows="1"></textarea>
+      <button class="send-btn">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MATCHES ===== -->
+<div class="screen" id="screen-matches">
+  <div class="matches-container">
+    <div class="tab-bar">
+      <div class="tab active">❤️ Discover</div>
+      <div class="tab">👥 Connections <span style="background:#ECFDF5;color:#059669;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:4px;">2</span></div>
+    </div>
+
+    <div class="match-counter">
+      <span>✨ <b>5</b> matches left today</span>
+      <a href="#">👑 Go unlimited</a>
+    </div>
+
+    <div class="swipe-card">
+      <div class="swipe-header">
+        <div class="avatar" style="width:72px;height:72px;font-size:22px;box-shadow:0 0 0 4px white, 0 2px 8px rgba(0,0,0,0.1);">CD</div>
+        <div>
+          <h2 class="serif">Camille D.</h2>
+          <div class="location">📍 Paris, France</div>
+          <div class="books-count">📚 24 books this year</div>
+        </div>
+      </div>
+      <div class="swipe-body">
+        <div class="swipe-bio">"Literature teacher by day, voracious reader by night. Always looking for someone to discuss the classics with."</div>
+
+        <div class="shared-books">
+          <h4>✨ Books in Common</h4>
+          <div class="shared-book">📖 <b>The Stranger</b> <span>by Albert Camus</span></div>
+        </div>
+
+        <div class="reading-section">
+          <h4>Currently Reading</h4>
+          <div class="reading-item">
+            <div class="book-mini" style="background: linear-gradient(135deg, #434F3A, #6B7D63);">AC</div>
+            <div class="info">
+              <p>The Stranger</p>
+              <span>Albert Camus</span>
+              <div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+            </div>
+            <div class="pct">65%</div>
+          </div>
+          <div class="reading-item">
+            <div class="book-mini" style="background: linear-gradient(135deg, #92400E, #D97706);">HH</div>
+            <div class="info">
+              <p>Siddhartha</p>
+              <span>Hermann Hesse</span>
+              <div class="progress-bar"><div class="progress-fill" style="width:30%"></div></div>
+            </div>
+            <div class="pct">30%</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <h4 style="font-size:11px;font-weight:600;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Favorite Genres</h4>
+          <div class="chips" style="margin-bottom:0;">
+            <span class="chip">Fiction</span>
+            <span class="chip">Philosophy</span>
+            <span class="chip">Poetry</span>
+          </div>
+        </div>
+      </div>
+      <div class="swipe-actions">
+        <button class="swipe-btn pass" title="Pass">✕</button>
+        <button class="swipe-btn like" title="Connect">❤️</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PROFILE ===== -->
+<div class="screen" id="screen-profile">
+  <div class="profile-container">
+    <div class="profile-card">
+      <div class="avatar xl" style="margin: 0 auto 12px; box-shadow: 0 0 0 4px var(--cream-200);">YN</div>
+      <h2 class="serif">Your Name</h2>
+      <div class="email">you@email.com</div>
+      <div class="location">📍 New York, NY</div>
+      <div class="upgrade-pill">👑 Upgrade to Premium</div>
+    </div>
+
+    <div class="info-card">
+      <h4>About</h4>
+      <p>Avid reader and book club enthusiast. Always looking for the next great discussion. Currently balancing between fiction and philosophy.</p>
+    </div>
+
+    <div class="info-card">
+      <div class="goal-bar-container">
+        <h4 style="margin:0;">Reading Goal</h4>
+        <span>🎯 17 / 24 books</span>
+      </div>
+      <div class="goal-bar"><div class="goal-fill" style="width:71%"></div></div>
+      <div class="goal-note">71% complete — 7 books to go</div>
+    </div>
+
+    <div class="info-card">
+      <h4>Favorite Genres</h4>
+      <div class="chips" style="margin-top:8px;margin-bottom:0;">
+        <span class="chip">Fiction</span>
+        <span class="chip">Philosophy</span>
+        <span class="chip">Science Fiction</span>
+        <span class="chip">History</span>
+        <span class="chip">Psychology</span>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="icon">📚</div>
+        <div class="num">17</div>
+        <div class="label">Books read</div>
+      </div>
+      <div class="stat-box">
+        <div class="icon">📖</div>
+        <div class="num">3</div>
+        <div class="label">Active spaces</div>
+      </div>
+      <div class="stat-box">
+        <div class="icon">📅</div>
+        <div class="num">Jan '26</div>
+        <div class="label">Joined</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PREMIUM ===== -->
+<div class="screen" id="screen-premium">
+  <div class="premium-container">
+    <div class="premium-icon">👑</div>
+    <h1 class="serif">BookWork Premium</h1>
+    <p>Unlimited connections. Unlimited spaces. No limits on your reading journey.</p>
+
+    <div class="plan-toggle">
+      <div class="plan-option" onclick="selectPlan(this, 'monthly')">
+        <div class="label">Monthly</div>
+        <div class="price">$7.99<span>/mo</span></div>
+      </div>
+      <div class="plan-option selected" onclick="selectPlan(this, 'yearly')">
+        <div class="save-badge">Save 37%</div>
+        <div class="label">Yearly</div>
+        <div class="price">$59.99<span>/yr</span></div>
+        <div class="sub">$5.00/month</div>
+      </div>
+    </div>
+
+    <button class="subscribe-btn">Subscribe — $59.99/year</button>
+    <div class="cancel-note">Cancel anytime. No commitment required.</div>
+
+    <div class="features-list">
+      <h3>Everything in Premium</h3>
+      <div class="feature-row"><div class="feature-icon">⚡</div><span>Unlimited daily matches</span></div>
+      <div class="feature-row"><div class="feature-icon">👥</div><span>Unlimited space creation</span></div>
+      <div class="feature-row"><div class="feature-icon">✨</div><span>Priority in match algorithm</span></div>
+      <div class="feature-row"><div class="feature-icon">👁</div><span>See who liked your profile</span></div>
+      <div class="feature-row"><div class="feature-icon">❤️</div><span>Advanced filters (reading pace, style)</span></div>
+      <div class="feature-row"><div class="feature-icon">👑</div><span>Ad-free experience</span></div>
+      <div class="feature-row"><div class="feature-icon">🎨</div><span>Custom profile themes</span></div>
+      <div class="feature-row"><div class="feature-icon">✨</div><span>Early access to new features</span></div>
+    </div>
+
+    <div class="comparison">
+      <table>
+        <tr><th style="text-align:left">Feature</th><th>Free</th><th>Premium</th></tr>
+        <tr><td>Daily matches</td><td>5</td><td>Unlimited</td></tr>
+        <tr><td>Create spaces</td><td>2</td><td>Unlimited</td></tr>
+        <tr><td>Join spaces</td><td>Unlimited</td><td>Unlimited</td></tr>
+        <tr><td>See who liked you</td><td>—</td><td>Yes</td></tr>
+        <tr><td>Advanced filters</td><td>—</td><td>Yes</td></tr>
+        <tr><td>Ad-free</td><td>—</td><td>Yes</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SIGN IN ===== -->
+<div class="screen" id="screen-signin">
+  <div class="signin-layout">
+    <div class="signin-left">
+      <div>
+        <div class="logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8E9D87" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>BookWork</span>
+        </div>
+        <p style="font-size:12px;color:#78716C;margin-top:4px;">Connect with readers</p>
+      </div>
+      <div>
+        <blockquote>"A reader lives a thousand lives before he dies. The man who never reads lives only one."</blockquote>
+        <div class="author">— George R.R. Martin</div>
+        <div class="signin-stats">
+          <div class="stat-card"><div class="num">12k+</div><div class="label">Active readers</div></div>
+          <div class="stat-card"><div class="num">3.2k</div><div class="label">Book spaces</div></div>
+          <div class="stat-card"><div class="num">850+</div><div class="label">Live discussions</div></div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:#57534E;">© 2026 BookWork. All rights reserved.</p>
+    </div>
+    <div class="signin-right">
+      <div class="signin-form">
+        <h1 class="serif">Welcome back</h1>
+        <p>Sign in to continue your reading journey.</p>
+        <button class="sso-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Continue with Google
+        </button>
+        <button class="sso-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+          Continue with Apple
+        </button>
+        <div class="divider"><span>or</span></div>
+        <div class="form-group">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <input type="email" placeholder="Email address">
+        </div>
+        <div class="form-group">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" placeholder="Password">
+        </div>
+        <button class="submit-btn" style="margin-top:4px;">Sign in →</button>
+        <div class="form-switch">Don't have an account? <a>Create one</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function selectPlan(el, plan) {
+  document.querySelectorAll('.plan-option').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  const btn = document.querySelector('.subscribe-btn');
+  btn.textContent = plan === 'monthly' ? 'Subscribe — $7.99/month' : 'Subscribe — $59.99/year';
+}
+</script>
+</body>
+</html>
