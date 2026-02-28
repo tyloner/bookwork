@@ -129,26 +129,32 @@ export async function GET(
       };
   }
 
-  // Register / update participant record
-  await prisma.callParticipant.upsert({
-    where: {
-      // Use sessionId + userId as a logical unique key
-      // (multiple rows allowed for reconnects — use findFirst in practice)
-      sessionId_userId: { sessionId: callSession.id, userId },
-    },
-    create: {
-      sessionId: callSession.id,
-      userId,
-      providerUid: tokenData.uid ? String(tokenData.uid) : undefined,
-      role: isOwner ? "HOST" : "LISTENER",
-      joinedAt: new Date(),
-    },
-    update: {
-      providerUid: tokenData.uid ? String(tokenData.uid) : undefined,
-      joinedAt: new Date(),
-      leftAt: null,
-    },
+  // Register / update participant record (findFirst because reconnects can create multiple rows)
+  const existing = await prisma.callParticipant.findFirst({
+    where: { sessionId: callSession.id, userId },
+    orderBy: { joinedAt: "desc" },
   });
+
+  if (existing) {
+    await prisma.callParticipant.update({
+      where: { id: existing.id },
+      data: {
+        providerUid: tokenData.uid ? String(tokenData.uid) : undefined,
+        joinedAt: new Date(),
+        leftAt: null,
+      },
+    });
+  } else {
+    await prisma.callParticipant.create({
+      data: {
+        sessionId: callSession.id,
+        userId,
+        providerUid: tokenData.uid ? String(tokenData.uid) : undefined,
+        role: isOwner ? "HOST" : "LISTENER",
+        joinedAt: new Date(),
+      },
+    });
+  }
 
   // Move session to LIVE if this is the first join
   if (callSession.status === "WAITING") {
