@@ -50,7 +50,6 @@ export async function POST(request: Request) {
               tierExpiresAt: new Date(
                 subscription.current_period_end * 1000
               ),
-              matchesLeftToday: 999,
             },
           });
 
@@ -100,7 +99,6 @@ export async function POST(request: Request) {
               tier: "FREE",
               stripeSubId: null,
               tierExpiresAt: null,
-              matchesLeftToday: 5,
             },
           });
 

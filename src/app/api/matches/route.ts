@@ -3,7 +3,41 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// GET: Fetch potential matches (readers with similar books)
+const FREE_DAILY_LIMIT = 5;
+
+// ── Quota helpers ──────────────────────────────────────────────────────────────
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Returns how many matches the user has sent today. */
+async function getUsedToday(userId: string): Promise<number> {
+  const today = startOfToday();
+  const quota = await prisma.matchQuota.findUnique({ where: { userId } });
+  if (!quota || quota.resetDate < today) return 0;
+  return quota.usedToday;
+}
+
+/** Increments the match quota counter, resetting it if the date has rolled over. */
+async function incrementQuota(userId: string) {
+  const today = startOfToday();
+  const quota = await prisma.matchQuota.findUnique({ where: { userId } });
+  const needsReset = !quota || quota.resetDate < today;
+
+  await prisma.matchQuota.upsert({
+    where: { userId },
+    create: { userId, usedToday: 1, resetDate: today },
+    update: needsReset
+      ? { usedToday: 1, resetDate: today }
+      : { usedToday: { increment: 1 } },
+  });
+}
+
+// ── GET: Fetch potential matches ───────────────────────────────────────────────
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -93,7 +127,8 @@ export async function GET() {
   }
 }
 
-// POST: Send a match request (like/pass)
+// ── POST: Send a match request (like/pass) ─────────────────────────────────────
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -114,32 +149,21 @@ export async function POST(request: Request) {
     // Check daily match limit for free users
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { tier: true, matchesLeftToday: true, lastMatchReset: true },
+      select: { tier: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Reset daily counter if needed
-    const now = new Date();
-    const lastReset = new Date(user.lastMatchReset);
-    if (
-      now.getDate() !== lastReset.getDate() ||
-      now.getMonth() !== lastReset.getMonth()
-    ) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { matchesLeftToday: user.tier === "PREMIUM" ? 999 : 5, lastMatchReset: now },
-      });
-      user.matchesLeftToday = user.tier === "PREMIUM" ? 999 : 5;
-    }
-
-    if (user.tier === "FREE" && user.matchesLeftToday <= 0) {
-      return NextResponse.json(
-        { error: "Daily match limit reached. Upgrade to Premium for unlimited matches." },
-        { status: 429 }
-      );
+    if (user.tier === "FREE") {
+      const usedToday = await getUsedToday(userId);
+      if (usedToday >= FREE_DAILY_LIMIT) {
+        return NextResponse.json(
+          { error: "Daily match limit reached. Upgrade to Premium for unlimited matches." },
+          { status: 429 }
+        );
+      }
     }
 
     if (action === "like") {
@@ -184,12 +208,7 @@ export async function POST(request: Request) {
           ],
         });
 
-        // Decrement counter
-        await prisma.user.update({
-          where: { id: userId },
-          data: { matchesLeftToday: { decrement: 1 } },
-        });
-
+        await incrementQuota(userId);
         return NextResponse.json(
           { match: newMatch, isMutual: true },
           { status: 201 }
@@ -216,12 +235,7 @@ export async function POST(request: Request) {
         },
       });
 
-      // Decrement counter
-      await prisma.user.update({
-        where: { id: userId },
-        data: { matchesLeftToday: { decrement: 1 } },
-      });
-
+      await incrementQuota(userId);
       return NextResponse.json(
         { match, isMutual: false },
         { status: 201 }
