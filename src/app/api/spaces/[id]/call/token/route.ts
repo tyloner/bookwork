@@ -51,7 +51,7 @@ async function getDailyToken(roomName: string, userId: string, isOwner: boolean)
 async function getLiveKitToken(roomName: string, userId: string, isOwner: boolean) {
   // LiveKit uses a signed JWT — install `livekit-server-sdk` for production.
   // This stub shows the shape; replace with AccessToken from the SDK.
-  const { AccessToken } = await import("livekit-server-sdk").catch(() => {
+  const { AccessToken } = await import(/* webpackIgnore: true */ "livekit-server-sdk").catch(() => {
     throw new Error("livekit-server-sdk not installed. Run: npm i livekit-server-sdk");
   });
 
@@ -75,7 +75,7 @@ async function getLiveKitToken(roomName: string, userId: string, isOwner: boolea
 async function getAgoraToken(channelName: string, userId: string) {
   // Agora tokens are generated with the RtcTokenBuilder from agora-access-token.
   // Install: npm i agora-access-token
-  const { RtcTokenBuilder, RtcRole } = await import("agora-access-token").catch(() => {
+  const { RtcTokenBuilder, RtcRole } = await import(/* webpackIgnore: true */ "agora-access-token").catch(() => {
     throw new Error("agora-access-token not installed. Run: npm i agora-access-token");
   });
 
@@ -99,7 +99,7 @@ async function getAgoraToken(channelName: string, userId: string) {
 
 async function getTwilioToken(roomSid: string, userId: string) {
   // Twilio uses an AccessToken with a VideoGrant — install: npm i twilio
-  const twilio = await import("twilio").catch(() => {
+  const twilio = await import(/* webpackIgnore: true */ "twilio").catch(() => {
     throw new Error("twilio not installed. Run: npm i twilio");
   });
 
