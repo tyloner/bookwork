@@ -5,6 +5,7 @@ import AppleProvider from "next-auth/providers/apple";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import type { Prisma } from "@prisma/client";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -90,11 +91,11 @@ export const authOptions: NextAuthOptions = {
           provider: account.provider,
           providerId: account.providerAccountId,
           ...normalised,
-          rawData: profile as object,
+          rawData: profile as Prisma.InputJsonValue,
         },
         update: {
           ...normalised,
-          rawData: profile as object,
+          rawData: profile as Prisma.InputJsonValue,
           syncedAt: new Date(),
         },
       });

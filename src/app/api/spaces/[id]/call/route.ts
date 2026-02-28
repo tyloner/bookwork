@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { VoipProvider } from "@prisma/client";
+import type { VoipProvider, Prisma } from "@prisma/client";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,7 +124,7 @@ export async function POST(
       spaceId,
       provider,
       providerRoomId,
-      providerMeta: providerMeta ?? undefined,
+      providerMeta: (providerMeta ?? undefined) as Prisma.InputJsonValue | undefined,
       status: "WAITING",
       maxParticipants: 20,
     },
