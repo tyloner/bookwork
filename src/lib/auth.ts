@@ -68,18 +68,14 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Normalise across providers — Google and Apple return different shapes
+      const p = profile as Record<string, unknown>;
       const normalised = {
         email: profile.email ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        name: (profile as any).name ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        givenName: (profile as any).given_name ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        familyName: (profile as any).family_name ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        image: (profile as any).picture ?? (profile as any).image ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        locale: (profile as any).locale ?? null,
+        name: (p.name as string) ?? null,
+        givenName: (p.given_name as string) ?? null,
+        familyName: (p.family_name as string) ?? null,
+        image: (p.picture as string) ?? (p.image as string) ?? null,
+        locale: (p.locale as string) ?? null,
       };
 
       await prisma.externalProfile.upsert({

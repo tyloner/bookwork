@@ -196,8 +196,7 @@ export function parseRequestQuery<T extends z.ZodTypeAny>(
 
 /** Strip sensitive fields from a User object before sending to the client. */
 export function sanitizeUser<T extends Record<string, unknown>>(user: T) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password, stripeCustomerId, stripeSubId, deletedAt, ...safe } = user as Record<string, unknown>;
+  const { password: _p, stripeCustomerId: _c, stripeSubId: _s, deletedAt: _d, ...safe } = user as Record<string, unknown>;
   return safe;
 }
 
