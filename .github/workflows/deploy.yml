@@ -1,0 +1,129 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Production Deploy
+#
+# Triggered by push to `main` (i.e. merge of a PR).
+#
+# Pipeline:
+#   1. [migrate]  Run pending DB migrations against production Postgres.
+#                 If this fails, deploy is aborted — schema and code stay in sync.
+#   2. [deploy]   Build and deploy to Vercel production.
+#
+# GitHub Environment: "production"
+#   - Go to Settings → Environments → production
+#   - Add required reviewers for human approval before deploy
+#   - Store all secrets there (they override repo-level secrets)
+#
+# Required GitHub Secrets (Settings → Environments → production → Secrets):
+#   DATABASE_URL       Prisma Accelerate / PgBouncer URL (pooled)
+#   DIRECT_URL         Raw Postgres URL (used by migrations to bypass pooler)
+#   VERCEL_TOKEN       Vercel API token (vercel.com → Account Settings → Tokens)
+#   VERCEL_ORG_ID      From `vercel link` or .vercel/project.json
+#   VERCEL_PROJECT_ID  From `vercel link` or .vercel/project.json
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Deploy — Production
+
+on:
+  push:
+    branches: [main, claude/book-club-platform-KMBLj]
+
+concurrency:
+  # Only one production deploy at a time
+  group: deploy-production
+  cancel-in-progress: false  # never cancel a running production deploy
+
+jobs:
+  # ── Step 1: Database migrations ────────────────────────────────────────────
+  migrate:
+    name: Run DB migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production   # uses environment secrets + triggers approval gate
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # `migrate deploy` applies pending migrations only.
+      # It never creates new migrations — safe to run in CI.
+      # Uses DIRECT_URL to bypass the connection pooler for DDL statements.
+      - name: Apply pending migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+  # ── Step 2: Vercel production deploy ───────────────────────────────────────
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: migrate   # do not deploy if migrations failed
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # Pull Vercel project settings and environment variables
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Build the Next.js app using Vercel's build pipeline
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Deploy the pre-built output to production and capture the URL
+      - name: Deploy
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $URL"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Post the deployment URL as a commit status for visibility
+      - name: Set deployment status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: 'success',
+              target_url: '${{ steps.deploy.outputs.url }}',
+              description: 'Production deployment succeeded',
+              context: 'vercel/production'
+            });

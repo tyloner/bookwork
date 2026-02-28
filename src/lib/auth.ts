@@ -12,6 +12,10 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Request profile + email so we always get name/picture/locale
+      authorization: {
+        params: { scope: "openid email profile" },
+      },
     }),
     AppleProvider({
       clientId: process.env.APPLE_ID!,
@@ -54,12 +58,86 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
+    // ── Sync SSO profile into ExternalProfile on every sign-in ──────
+    // This keeps ExternalProfile as the live source of truth for data
+    // fetched from the provider, separate from what the user edits.
+    async signIn({ user, account, profile }) {
+      // Credentials sign-in: no external profile to sync
+      if (!account || account.type === "credentials" || !profile) {
+        return true;
+      }
+
+      // Normalise across providers — Google and Apple return different shapes
+      const normalised = {
+        email: profile.email ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        name: (profile as any).name ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        givenName: (profile as any).given_name ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        familyName: (profile as any).family_name ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        image: (profile as any).picture ?? (profile as any).image ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        locale: (profile as any).locale ?? null,
+      };
+
+      await prisma.externalProfile.upsert({
+        where: {
+          userId_provider: {
+            userId: user.id!,
+            provider: account.provider,
+          },
+        },
+        create: {
+          userId: user.id!,
+          provider: account.provider,
+          providerId: account.providerAccountId,
+          ...normalised,
+          rawData: profile as object,
+        },
+        update: {
+          ...normalised,
+          rawData: profile as object,
+          syncedAt: new Date(),
+        },
+      });
+
+      // Back-fill User.name / User.image only when the user has not
+      // manually set them (nameSource / imageSource === USER means
+      // the user wrote it themselves — don't overwrite).
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { nameSource: true, imageSource: true },
+      });
+
+      if (dbUser) {
+        const patch: Record<string, unknown> = {};
+
+        if (dbUser.nameSource !== "USER" && normalised.name) {
+          patch.name = normalised.name;
+          patch.nameSource = account.provider.toUpperCase(); // "GOOGLE" | "APPLE"
+        }
+        if (dbUser.imageSource !== "USER" && normalised.image) {
+          patch.image = normalised.image;
+          patch.imageSource = account.provider.toUpperCase();
+        }
+
+        if (Object.keys(patch).length > 0) {
+          await prisma.user.update({ where: { id: user.id }, data: patch });
+        }
+      }
+
+      return true;
+    },
+
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         (session.user as { id: string }).id = token.id as string;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BookWork — Preview</title>
+<title>BookWorm — Preview</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -250,6 +250,28 @@
     .signin-left { display: none; }
     .signin-right { padding: 24px; }
   }
+
+  /* ===== MATCH MODAL ===== */
+  .match-modal-overlay { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(28,25,23,0.72); align-items: center; justify-content: center; opacity: 0; transition: opacity .3s; }
+  .match-modal-overlay.visible { opacity: 1; }
+  .match-modal { background: white; border-radius: 20px; padding: 36px 28px; text-align: center; max-width: 320px; width: 90%; transform: scale(0.88); transition: transform .3s; box-shadow: 0 24px 64px rgba(0,0,0,0.15); }
+  .match-modal-overlay.visible .match-modal { transform: scale(1); }
+  .match-worm { font-size: 44px; margin-bottom: 8px; }
+  .match-modal h2 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 6px; }
+  .match-modal p { font-size: 13px; color: var(--ink-400); margin-bottom: 20px; }
+  .modal-avatars { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 20px; }
+  .modal-avatars .heart { font-size: 22px; }
+  .modal-btn-row { display: flex; gap: 10px; }
+  .modal-btn-row button { flex: 1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; border: none; transition: opacity .15s; }
+  .modal-btn-row button:hover { opacity: .85; }
+  .modal-btn-send { background: var(--sage-600); color: white; }
+  .modal-btn-keep { background: var(--ink-100); color: var(--ink-600); }
+  /* Swipe hint overlay */
+  .swipe-hint { position: absolute; top: 20px; font-size: 22px; font-weight: 800; padding: 6px 14px; border-radius: 8px; border: 3px solid; opacity: 0; transition: opacity .15s; pointer-events: none; }
+  .swipe-hint.like  { right: 20px; color: #22c55e; border-color: #22c55e; }
+  .swipe-hint.pass  { left: 20px;  color: #f87171; border-color: #f87171; }
+  .swipe-card { position: relative; }
+
 </style>
 </head>
 <body>
@@ -269,28 +291,55 @@
   <div class="app-layout">
     <div class="sidebar">
       <div class="sidebar-header">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        <span>BookWork</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+  <path d="M3 20 Q3 18.5 5 18.5 L15 20 L15 30 L5 30 Q3 30 3 28Z" fill="#D4DAD0"/>
+  <path d="M29 20 Q29 18.5 27 18.5 L17 20 L17 30 L27 30 Q29 30 29 28Z" fill="#FDF9F0"/>
+  <path d="M15 20 L17 20 L17 30 L15 30Z" fill="#556449" opacity="0.4"/>
+  <line x1="6" y1="23" x2="13" y2="22.5" stroke="#A8A29E" stroke-width="0.7"/>
+  <line x1="6" y1="25.5" x2="13" y2="25" stroke="#A8A29E" stroke-width="0.7"/>
+  <line x1="19" y1="22.5" x2="26" y2="23" stroke="#A8A29E" stroke-width="0.7"/>
+  <line x1="19" y1="25" x2="26" y2="25.5" stroke="#A8A29E" stroke-width="0.7"/>
+  <circle cx="23" cy="14" r="3.5" fill="#8CC08C"/>
+  <circle cx="20" cy="10.5" r="4" fill="#7AB87A"/>
+  <circle cx="16" cy="13" r="6" fill="#6BAE6B"/>
+  <circle cx="14" cy="11.5" r="2" fill="white"/>
+  <circle cx="18.5" cy="11.5" r="2" fill="white"/>
+  <circle cx="14.4" cy="11.8" r="1" fill="#1C1917"/>
+  <circle cx="18.9" cy="11.8" r="1" fill="#1C1917"/>
+  <circle cx="14.7" cy="11.4" r="0.35" fill="white"/>
+  <circle cx="19.2" cy="11.4" r="0.35" fill="white"/>
+  <rect x="12" y="9.8" width="4" height="3" rx="1.5" stroke="#44403C" stroke-width="0.8" fill="none"/>
+  <rect x="16.2" y="9.8" width="4" height="3" rx="1.5" stroke="#44403C" stroke-width="0.8" fill="none"/>
+  <line x1="16" y1="11.3" x2="16.2" y2="11.3" stroke="#44403C" stroke-width="0.8"/>
+  <line x1="12" y1="11.3" x2="10.5" y2="11.8" stroke="#44403C" stroke-width="0.7"/>
+  <line x1="20.2" y1="11.3" x2="21.7" y2="11.8" stroke="#44403C" stroke-width="0.7"/>
+  <path d="M14 15 Q16 17 18.5 15" stroke="#3D7A3D" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+  <path d="M14.5 7 Q13 4 11.5 3" stroke="#6BAE6B" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M17.5 7 Q19 4 20.5 3" stroke="#6BAE6B" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <circle cx="11.5" cy="3" r="1.2" fill="#F59E0B"/>
+  <circle cx="20.5" cy="3" r="1.2" fill="#F59E0B"/>
+</svg>
+        <span>BookWorm</span>
       </div>
       <button class="create-btn">+ Create Space</button>
       <div class="nav-items">
-        <div class="nav-item active">
+        <div class="nav-item active" onclick="goTo('home')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
           Home
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="goTo('home')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           Discover
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="goTo('matches')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
           Matches
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="goTo('home')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
           My Spaces
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="goTo('home')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
           Notifications
           <span class="badge">3</span>
@@ -321,7 +370,7 @@
       <div class="search-row">
         <div class="search-input">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input type="text" placeholder="Search books, authors, or spaces...">
+          <input type="text" id="search-input" placeholder="Search books, authors, or spaces..." oninput="applyFilters()">
         </div>
         <button class="filter-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/></svg>
@@ -329,14 +378,14 @@
         </button>
       </div>
 
-      <div class="chips">
-        <span class="chip active">All Types</span>
-        <span class="chip">Chat</span>
-        <span class="chip">Live Call</span>
-        <span class="chip">Hybrid</span>
+      <div class="chips" id="type-chips">
+        <span class="chip active" onclick="filterByType(this,'all')">All Types</span>
+        <span class="chip" onclick="filterByType(this,'CHAT')">Chat</span>
+        <span class="chip" onclick="filterByType(this,'CALL')">Live Call</span>
+        <span class="chip" onclick="filterByType(this,'HYBRID')">Hybrid</span>
       </div>
 
-      <div class="space-card">
+      <div class="space-card" data-type="CHAT" data-name="Deep dive into Kafka&#39;s Metamorphosis" data-book="The Metamorphosis" data-members="12" data-bg="#434F3A,#6B7D63" data-i="FK" onclick="openSpace(this)">
         <div class="space-card-inner">
           <div class="book-cover" style="background: linear-gradient(135deg, #434F3A, #6B7D63);">Kafka</div>
           <div>
@@ -356,7 +405,7 @@
         </div>
       </div>
 
-      <div class="space-card">
+      <div class="space-card" data-type="CALL" data-name="Dune Book Club — Live Discussion" data-book="Dune" data-members="18" data-bg="#92400E,#D97706" data-i="DU" onclick="openSpace(this)">
         <div class="space-card-inner">
           <div class="book-cover" style="background: linear-gradient(135deg, #92400E, #D97706);">Dune</div>
           <div>
@@ -376,7 +425,7 @@
         </div>
       </div>
 
-      <div class="space-card">
+      <div class="space-card" data-type="HYBRID" data-name="Sapiens — History Lovers Unite" data-book="Sapiens" data-members="15" data-bg="#1E40AF,#3B82F6" data-i="SA" onclick="openSpace(this)">
         <div class="space-card-inner">
           <div class="book-cover" style="background: linear-gradient(135deg, #1E40AF, #3B82F6);">Sapiens</div>
           <div>
@@ -396,7 +445,7 @@
         </div>
       </div>
 
-      <div class="space-card">
+      <div class="space-card" data-type="CHAT" data-name="Project Hail Mary Readers" data-book="Project Hail Mary" data-members="20" data-bg="#7C3AED,#A78BFA" data-i="PM" onclick="openSpace(this)">
         <div class="space-card-inner">
           <div class="book-cover" style="background: linear-gradient(135deg, #7C3AED, #A78BFA);">PHM</div>
           <div>
@@ -416,7 +465,7 @@
         </div>
       </div>
 
-      <div class="space-card">
+      <div class="space-card" data-type="CHAT" data-name="Norwegian Wood Reading Circle" data-book="Norwegian Wood" data-members="8" data-bg="#BE185D,#EC4899" data-i="NW" onclick="openSpace(this)">
         <div class="space-card-inner">
           <div class="book-cover" style="background: linear-gradient(135deg, #BE185D, #EC4899);">NW</div>
           <div>
@@ -443,20 +492,20 @@
 <div class="screen" id="screen-chat">
   <div class="chat-layout">
     <div class="chat-header">
-      <div class="avatar" style="background: linear-gradient(135deg, #434F3A, #6B7D63); color: white; font-size: 12px;">FK</div>
+      <div id="chat-avatar" class="avatar" style="background: linear-gradient(135deg, #434F3A, #6B7D63); color: white; font-size: 12px;">FK</div>
       <div class="info">
-        <h3>Deep dive into Kafka's Metamorphosis</h3>
-        <p>📖 The Metamorphosis &nbsp;·&nbsp; 👥 12 members</p>
+        <h3 id="chat-space-name">Deep dive into Kafka's Metamorphosis</h3>
+        <p id="chat-space-meta">📖 The Metamorphosis &nbsp;·&nbsp; 👥 12 members</p>
       </div>
       <div class="actions">
         <button class="call-btn">📞 Join Call</button>
         <button class="info-btn">ℹ️</button>
       </div>
     </div>
-    <div class="chat-messages">
-      <div class="chat-intro">
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-intro" id="chat-intro">
         <div class="icon">📖</div>
-        <h3>Deep dive into Kafka's Metamorphosis</h3>
+        <h3 id="chat-intro-title">Deep dive into Kafka's Metamorphosis</h3>
         <p>Let's explore themes of alienation, identity, and absurdism</p>
       </div>
       <div class="message">
@@ -507,8 +556,8 @@
       </div>
     </div>
     <div class="chat-input">
-      <textarea placeholder="Type a message..." rows="1"></textarea>
-      <button class="send-btn">➤</button>
+      <textarea id="chat-textarea" placeholder="Type a message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+      <button class="send-btn" onclick="sendMessage()">➤</button>
     </div>
   </div>
 </div>
@@ -522,52 +571,48 @@
     </div>
 
     <div class="match-counter">
-      <span>✨ <b>5</b> matches left today</span>
+      <span id="m-counter">✨ <b>5</b> matches left today</span>
       <a href="#">👑 Go unlimited</a>
     </div>
 
     <div class="swipe-card">
+      <div class="swipe-hint like">LIKE ❤️</div>
+      <div class="swipe-hint pass">✕ PASS</div>
       <div class="swipe-header">
-        <div class="avatar" style="width:72px;height:72px;font-size:22px;box-shadow:0 0 0 4px white, 0 2px 8px rgba(0,0,0,0.1);">CD</div>
+        <div id="m-initials" class="avatar" style="width:72px;height:72px;font-size:22px;box-shadow:0 0 0 4px white, 0 2px 8px rgba(0,0,0,0.1);">CD</div>
         <div>
-          <h2 class="serif">Camille D.</h2>
-          <div class="location">📍 Paris, France</div>
-          <div class="books-count">📚 24 books this year</div>
+          <h2 id="m-name" class="serif">Camille D.</h2>
+          <div id="m-loc" class="location">📍 Paris, France</div>
+          <div id="m-books" class="books-count">📚 24 books this year</div>
         </div>
       </div>
       <div class="swipe-body">
-        <div class="swipe-bio">"Literature teacher by day, voracious reader by night. Always looking for someone to discuss the classics with."</div>
+        <div id="m-bio" class="swipe-bio">"Literature teacher by day, voracious reader by night. Always looking for someone to discuss the classics with."</div>
 
         <div class="shared-books">
           <h4>✨ Books in Common</h4>
-          <div class="shared-book">📖 <b>The Stranger</b> <span>by Albert Camus</span></div>
+          <div id="m-common"><div class="shared-book">📖 <b>The Stranger</b> <span>by Albert Camus</span></div></div>
         </div>
 
         <div class="reading-section">
           <h4>Currently Reading</h4>
-          <div class="reading-item">
-            <div class="book-mini" style="background: linear-gradient(135deg, #434F3A, #6B7D63);">AC</div>
-            <div class="info">
-              <p>The Stranger</p>
-              <span>Albert Camus</span>
-              <div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+          <div id="m-reading">
+            <div class="reading-item">
+              <div class="book-mini" style="background:linear-gradient(135deg,#434F3A,#6B7D63)">AC</div>
+              <div class="info"><p>The Stranger</p><span>Albert Camus</span><div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div></div>
+              <div class="pct">65%</div>
             </div>
-            <div class="pct">65%</div>
-          </div>
-          <div class="reading-item">
-            <div class="book-mini" style="background: linear-gradient(135deg, #92400E, #D97706);">HH</div>
-            <div class="info">
-              <p>Siddhartha</p>
-              <span>Hermann Hesse</span>
-              <div class="progress-bar"><div class="progress-fill" style="width:30%"></div></div>
+            <div class="reading-item">
+              <div class="book-mini" style="background:linear-gradient(135deg,#92400E,#D97706)">HH</div>
+              <div class="info"><p>Siddhartha</p><span>Hermann Hesse</span><div class="progress-bar"><div class="progress-fill" style="width:30%"></div></div></div>
+              <div class="pct">30%</div>
             </div>
-            <div class="pct">30%</div>
           </div>
         </div>
 
         <div style="margin-top:12px;">
           <h4 style="font-size:11px;font-weight:600;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Favorite Genres</h4>
-          <div class="chips" style="margin-bottom:0;">
+          <div id="m-genres" class="chips" style="margin-bottom:0;">
             <span class="chip">Fiction</span>
             <span class="chip">Philosophy</span>
             <span class="chip">Poetry</span>
@@ -575,8 +620,8 @@
         </div>
       </div>
       <div class="swipe-actions">
-        <button class="swipe-btn pass" title="Pass">✕</button>
-        <button class="swipe-btn like" title="Connect">❤️</button>
+        <button class="swipe-btn pass" title="Pass" onclick="swipe('pass')">✕</button>
+        <button class="swipe-btn like" title="Connect" onclick="swipe('like')">❤️</button>
       </div>
     </div>
   </div>
@@ -642,7 +687,7 @@
 <div class="screen" id="screen-premium">
   <div class="premium-container">
     <div class="premium-icon">👑</div>
-    <h1 class="serif">BookWork Premium</h1>
+    <h1 class="serif">BookWorm Premium</h1>
     <p>Unlimited connections. Unlimited spaces. No limits on your reading journey.</p>
 
     <div class="plan-toggle">
@@ -658,7 +703,7 @@
       </div>
     </div>
 
-    <button class="subscribe-btn">Subscribe — $59.99/year</button>
+    <button class="subscribe-btn" onclick="subscribe()">Subscribe — $59.99/year</button>
     <div class="cancel-note">Cancel anytime. No commitment required.</div>
 
     <div class="features-list">
@@ -693,8 +738,35 @@
     <div class="signin-left">
       <div>
         <div class="logo">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8E9D87" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          <span>BookWork</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+  <path d="M3 20 Q3 18.5 5 18.5 L15 20 L15 30 L5 30 Q3 30 3 28Z" fill="#D4DAD0"/>
+  <path d="M29 20 Q29 18.5 27 18.5 L17 20 L17 30 L27 30 Q29 30 29 28Z" fill="#FDF9F0"/>
+  <path d="M15 20 L17 20 L17 30 L15 30Z" fill="#556449" opacity="0.4"/>
+  <line x1="6" y1="23" x2="13" y2="22.5" stroke="#A8A29E" stroke-width="0.7"/>
+  <line x1="6" y1="25.5" x2="13" y2="25" stroke="#A8A29E" stroke-width="0.7"/>
+  <line x1="19" y1="22.5" x2="26" y2="23" stroke="#A8A29E" stroke-width="0.7"/>
+  <line x1="19" y1="25" x2="26" y2="25.5" stroke="#A8A29E" stroke-width="0.7"/>
+  <circle cx="23" cy="14" r="3.5" fill="#8CC08C"/>
+  <circle cx="20" cy="10.5" r="4" fill="#7AB87A"/>
+  <circle cx="16" cy="13" r="6" fill="#6BAE6B"/>
+  <circle cx="14" cy="11.5" r="2" fill="white"/>
+  <circle cx="18.5" cy="11.5" r="2" fill="white"/>
+  <circle cx="14.4" cy="11.8" r="1" fill="#1C1917"/>
+  <circle cx="18.9" cy="11.8" r="1" fill="#1C1917"/>
+  <circle cx="14.7" cy="11.4" r="0.35" fill="white"/>
+  <circle cx="19.2" cy="11.4" r="0.35" fill="white"/>
+  <rect x="12" y="9.8" width="4" height="3" rx="1.5" stroke="#44403C" stroke-width="0.8" fill="none"/>
+  <rect x="16.2" y="9.8" width="4" height="3" rx="1.5" stroke="#44403C" stroke-width="0.8" fill="none"/>
+  <line x1="16" y1="11.3" x2="16.2" y2="11.3" stroke="#44403C" stroke-width="0.8"/>
+  <line x1="12" y1="11.3" x2="10.5" y2="11.8" stroke="#44403C" stroke-width="0.7"/>
+  <line x1="20.2" y1="11.3" x2="21.7" y2="11.8" stroke="#44403C" stroke-width="0.7"/>
+  <path d="M14 15 Q16 17 18.5 15" stroke="#3D7A3D" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+  <path d="M14.5 7 Q13 4 11.5 3" stroke="#6BAE6B" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M17.5 7 Q19 4 20.5 3" stroke="#6BAE6B" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <circle cx="11.5" cy="3" r="1.2" fill="#F59E0B"/>
+  <circle cx="20.5" cy="3" r="1.2" fill="#F59E0B"/>
+</svg>
+          <span>BookWorm</span>
         </div>
         <p style="font-size:12px;color:#78716C;margin-top:4px;">Connect with readers</p>
       </div>
@@ -707,7 +779,7 @@
           <div class="stat-card"><div class="num">850+</div><div class="label">Live discussions</div></div>
         </div>
       </div>
-      <p style="font-size:11px;color:#57534E;">© 2026 BookWork. All rights reserved.</p>
+      <p style="font-size:11px;color:#57534E;">© 2026 BookWorm. All rights reserved.</p>
     </div>
     <div class="signin-right">
       <div class="signin-form">
@@ -724,13 +796,13 @@
         <div class="divider"><span>or</span></div>
         <div class="form-group">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <input type="email" placeholder="Email address">
+          <input id="signin-email" type="email" placeholder="Email address">
         </div>
         <div class="form-group">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <input type="password" placeholder="Password">
         </div>
-        <button class="submit-btn" style="margin-top:4px;">Sign in →</button>
+        <button class="submit-btn" style="margin-top:4px;" onclick="signIn()">Sign in →</button>
         <div class="form-switch">Don't have an account? <a>Create one</a></div>
       </div>
     </div>
@@ -738,19 +810,255 @@
 </div>
 
 <script>
+// ─── Navigation ──────────────────────────────────────────────────────────────
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
-  event.target.classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+function goTo(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.remove('active');
+    const oc = b.getAttribute('onclick') || '';
+    if (oc.includes("'" + name + "'")) b.classList.add('active');
+  });
+  document.getElementById('screen-' + name).classList.add('active');
 }
 
+// ─── Filtering ────────────────────────────────────────────────────────────────
+window._activeType = 'all';
+function filterByType(chip, type) {
+  document.querySelectorAll('#type-chips .chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  window._activeType = type;
+  applyFilters();
+}
+function applyFilters() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const t = window._activeType;
+  document.querySelectorAll('.space-card').forEach(card => {
+    const typeOk = t === 'all' || card.dataset.type === t;
+    const textOk = !q || card.textContent.toLowerCase().includes(q);
+    card.style.display = typeOk && textOk ? '' : 'none';
+  });
+}
+
+// ─── Open Space → Chat ───────────────────────────────────────────────────────
+function openSpace(el) {
+  const { name, book, members, bg, i } = el.dataset;
+  const av = document.getElementById('chat-avatar');
+  av.style.background = 'linear-gradient(135deg,' + bg + ')';
+  av.textContent = i;
+  document.getElementById('chat-space-name').textContent = name;
+  document.getElementById('chat-space-meta').innerHTML = '📖 ' + book + ' &nbsp;·&nbsp; 👥 ' + members + ' members';
+  document.getElementById('chat-intro-title').textContent = name;
+  const msgs = document.getElementById('chat-messages');
+  // Keep only the intro block, remove added messages
+  while (msgs.children.length > 1) msgs.removeChild(msgs.lastChild);
+  goTo('chat');
+}
+
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+function sendMessage() {
+  const ta = document.getElementById('chat-textarea');
+  const text = ta.value.trim();
+  if (!text) return;
+  const msgs = document.getElementById('chat-messages');
+  const msg = document.createElement('div');
+  msg.className = 'message own';
+  msg.innerHTML = '<div><div class="bubble">' + esc(text) + '</div><div class="time">just now</div></div>';
+  msgs.appendChild(msg);
+  ta.value = '';
+  msgs.scrollTop = msgs.scrollHeight;
+
+  setTimeout(() => {
+    const people = [
+      {i:'ER', n:'Elena R.',   s:''},
+      {i:'MT', n:'Marcus T.',  s:'background:#FDE68A;color:#92400E'},
+      {i:'AK', n:'Aisha K.',   s:'background:#DBEAFE;color:#1E40AF'},
+      {i:'JL', n:'James L.',   s:'background:#FCE7F3;color:#BE185D'},
+    ];
+    const replies = [
+      'Great point! I was thinking the same thing.',
+      "Interesting — I hadn't considered that angle.",
+      'Yes! The author really nails that part. What chapter are you on?',
+      "That's exactly what makes this book so special.",
+      'Did you catch the foreshadowing in the earlier chapters?',
+      'The symbolism there is fascinating.',
+      'I completely agree. Should we set up a live call to discuss?',
+    ];
+    const p = people[Math.floor(Math.random() * people.length)];
+    const r = replies[Math.floor(Math.random() * replies.length)];
+    const reply = document.createElement('div');
+    reply.className = 'message';
+    reply.innerHTML = '<div class="avatar" style="' + p.s + '">' + p.i + '</div>' +
+      '<div><div class="name">' + p.n + '</div><div class="bubble">' + esc(r) + '</div><div class="time">just now</div></div>';
+    msgs.appendChild(reply);
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 900 + Math.random() * 1200);
+}
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ─── Match Profiles ───────────────────────────────────────────────────────────
+const PROFILES = [
+  { i:'CD', name:'Camille D.', loc:'Paris, France', books:24,
+    bio:'"Literature teacher by day, voracious reader by night. Always looking for someone to discuss the classics with."',
+    common:[{t:'The Stranger',a:'Albert Camus'}],
+    reading:[{i:'AC',c:'#434F3A,#6B7D63',t:'The Stranger',a:'Albert Camus',p:65},{i:'HH',c:'#92400E,#D97706',t:'Siddhartha',a:'Hermann Hesse',p:30}],
+    genres:['Fiction','Philosophy','Poetry'] },
+  { i:'RK', name:'Raj K.', loc:'Mumbai, India', books:31,
+    bio:'"Software engineer who reads sci-fi to escape reality — and sometimes to understand it better."',
+    common:[{t:'Dune',a:'Frank Herbert'},{t:'Project Hail Mary',a:'Andy Weir'}],
+    reading:[{i:'FH',c:'#7C3AED,#A78BFA',t:'Dune Messiah',a:'Frank Herbert',p:78}],
+    genres:['Science Fiction','Technology','Philosophy'] },
+  { i:'LM', name:'Léa M.', loc:'Lyon, France', books:19,
+    bio:'"I read a book a week. Mostly literary fiction and anything that makes me cry on public transport."',
+    common:[{t:'Norwegian Wood',a:'Haruki Murakami'}],
+    reading:[{i:'HM',c:'#BE185D,#EC4899',t:'Norwegian Wood',a:'Haruki Murakami',p:45},{i:'MA',c:'#0284C7,#38BDF8',t:'Meditations',a:'Marcus Aurelius',p:20}],
+    genres:['Fiction','Romance','Literary'] },
+  { i:'SB', name:'Sam B.', loc:'Toronto, Canada', books:12,
+    bio:'"Non-fiction is my guilty pleasure. I annotate everything and have strong opinions about Sapiens."',
+    common:[{t:'Sapiens',a:'Yuval Noah Harari'},{t:'Atomic Habits',a:'James Clear'}],
+    reading:[{i:'YH',c:'#1E40AF,#3B82F6',t:'Homo Deus',a:'Yuval Noah Harari',p:55}],
+    genres:['Non-Fiction','History','Psychology'] },
+  { i:'YN', name:'Yuna N.', loc:'Seoul, South Korea', books:27,
+    bio:'"I alternate between K-lit and global classics. Currently obsessed with Han Kang and Dostoevsky in the same week."',
+    common:[{t:'The Vegetarian',a:'Han Kang'}],
+    reading:[{i:'HK',c:'#059669,#34D399',t:'Human Acts',a:'Han Kang',p:90},{i:'FD',c:'#6D28D9,#C4B5FD',t:'The Idiot',a:'Dostoevsky',p:15}],
+    genres:['Literary Fiction','Korean Lit','Classics'] },
+  { i:'OA', name:'Omar A.', loc:'Cairo, Egypt', books:22,
+    bio:'"I read Arabic lit in the morning and translated works at night. Always hunting for the perfect recommendation."',
+    common:[{t:'Meditations',a:'Marcus Aurelius'}],
+    reading:[{i:'NA',c:'#0891B2,#22D3EE',t:'Palace Walk',a:'Naguib Mahfouz',p:60}],
+    genres:['World Literature','History','Philosophy'] },
+];
+
+let curP = 0, swipeAnimating = false;
+
+function renderProfile() {
+  const p = PROFILES[curP % PROFILES.length];
+  document.getElementById('m-initials').textContent = p.i;
+  document.getElementById('m-name').textContent = p.name;
+  document.getElementById('m-loc').innerHTML = '📍 ' + p.loc;
+  document.getElementById('m-books').innerHTML = '📚 ' + p.books + ' books this year';
+  document.getElementById('m-bio').textContent = p.bio;
+  document.getElementById('m-common').innerHTML = p.common.map(b =>
+    '<div class="shared-book">📖 <b>' + esc(b.t) + '</b> <span>by ' + esc(b.a) + '</span></div>'
+  ).join('');
+  document.getElementById('m-reading').innerHTML = p.reading.map(b =>
+    '<div class="reading-item">' +
+    '<div class="book-mini" style="background:linear-gradient(135deg,' + b.c + ')">' + b.i + '</div>' +
+    '<div class="info"><p>' + esc(b.t) + '</p><span>' + esc(b.a) + '</span>' +
+    '<div class="progress-bar"><div class="progress-fill" style="width:' + b.p + '%"></div></div></div>' +
+    '<div class="pct">' + b.p + '%</div></div>'
+  ).join('');
+  document.getElementById('m-genres').innerHTML = p.genres.map(g =>
+    '<span class="chip">' + esc(g) + '</span>'
+  ).join('');
+  const left = Math.max(0, 5 - curP);
+  document.getElementById('m-counter').innerHTML = '✨ <b>' + left + '</b> match' + (left === 1 ? '' : 'es') + ' left today';
+}
+
+function swipe(dir) {
+  if (swipeAnimating) return;
+  swipeAnimating = true;
+  const card = document.querySelector('.swipe-card');
+  // Flash hint
+  const hint = card.querySelector('.swipe-hint.' + (dir === 'like' ? 'like' : 'pass'));
+  hint.style.opacity = '1';
+  card.style.transition = 'transform .38s ease, opacity .38s ease';
+  card.style.transform = dir === 'like' ? 'translateX(150%) rotate(22deg)' : 'translateX(-150%) rotate(-22deg)';
+  card.style.opacity = '0';
+  if (dir === 'like' && Math.random() > 0.35) {
+    setTimeout(() => showMatchModal(PROFILES[curP % PROFILES.length]), 180);
+  }
+  setTimeout(() => {
+    curP++;
+    renderProfile();
+    hint.style.opacity = '0';
+    card.style.transition = 'none';
+    card.style.transform = dir === 'like' ? 'translateX(-50px) rotate(-6deg)' : 'translateX(50px) rotate(6deg)';
+    card.style.opacity = '0';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      card.style.transition = 'transform .3s ease, opacity .3s ease';
+      card.style.transform = '';
+      card.style.opacity = '1';
+      swipeAnimating = false;
+    }));
+  }, 390);
+}
+
+function showMatchModal(p) {
+  const m = document.getElementById('match-modal');
+  document.getElementById('modal-initials').textContent = p.i;
+  document.getElementById('modal-name').textContent = p.name.split(' ')[0];
+  m.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => m.classList.add('visible')));
+}
+function closeMatchModal() {
+  const m = document.getElementById('match-modal');
+  m.classList.remove('visible');
+  setTimeout(() => { m.style.display = 'none'; }, 300);
+}
+
+// ─── Sign In ──────────────────────────────────────────────────────────────────
+function signIn() {
+  const emailEl = document.getElementById('signin-email');
+  if (!emailEl.value.trim()) {
+    emailEl.style.borderColor = '#F87171';
+    emailEl.focus();
+    return;
+  }
+  emailEl.style.borderColor = '';
+  const btn = document.querySelector('.submit-btn');
+  btn.textContent = 'Signing in...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = 'Sign in →';
+    btn.disabled = false;
+    goTo('home');
+  }, 900);
+}
+
+// ─── Premium ─────────────────────────────────────────────────────────────────
+function subscribe() {
+  const btn = document.querySelector('.subscribe-btn');
+  const isYearly = !!document.querySelector('.plan-option.selected .save-badge');
+  btn.textContent = '✓ You\'re Premium! 🐛✨';
+  btn.style.background = 'linear-gradient(90deg,var(--sage-500),var(--sage-600))';
+  btn.style.boxShadow = '0 4px 12px rgba(107,125,99,0.35)';
+  setTimeout(() => {
+    btn.textContent = isYearly ? 'Subscribe — $59.99/year' : 'Subscribe — $7.99/month';
+    btn.style.background = '';
+    btn.style.boxShadow = '';
+  }, 2500);
+}
 function selectPlan(el, plan) {
   document.querySelectorAll('.plan-option').forEach(p => p.classList.remove('selected'));
   el.classList.add('selected');
-  const btn = document.querySelector('.subscribe-btn');
-  btn.textContent = plan === 'monthly' ? 'Subscribe — $7.99/month' : 'Subscribe — $59.99/year';
+  document.querySelector('.subscribe-btn').textContent =
+    plan === 'monthly' ? 'Subscribe — $7.99/month' : 'Subscribe — $59.99/year';
 }
 </script>
+
+<!-- ===== MATCH MODAL ===== -->
+<div class="match-modal-overlay" id="match-modal" onclick="if(event.target===this)closeMatchModal()">
+  <div class="match-modal">
+    <div class="match-worm">🐛</div>
+    <h2>It's a Match!</h2>
+    <p>You and <b id="modal-name">Camille</b> both love the same books.</p>
+    <div class="modal-avatars">
+      <div class="avatar" style="width:52px;height:52px;font-size:16px;box-shadow:0 0 0 3px var(--sage-200);">YN</div>
+      <span class="heart">❤️</span>
+      <div id="modal-initials" class="avatar" style="width:52px;height:52px;font-size:16px;box-shadow:0 0 0 3px var(--sage-200);">CD</div>
+    </div>
+    <div class="modal-btn-row">
+      <button class="modal-btn-keep" onclick="closeMatchModal()">Keep swiping</button>
+      <button class="modal-btn-send" onclick="closeMatchModal()">Send a message 💬</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

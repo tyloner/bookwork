@@ -35,7 +35,10 @@ yarn-error.log*
 next-env.d.ts
 
 # prisma
-prisma/migrations/
+# NOTE: prisma/migrations/ must NOT be ignored.
+# Migration files must be committed so `prisma migrate deploy` works in CI/CD.
+# Only ignore the dev-only migration shadow database lock if it appears.
+prisma/.migration-lock.json
 
 # PWA
 public/sw.js

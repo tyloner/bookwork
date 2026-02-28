@@ -1,0 +1,56 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CI — runs on every push and pull request
+#
+# Gates:
+#   1. Type-check   (tsc --noEmit)
+#   2. Lint         (next lint)
+#
+# Does NOT deploy. Deployment is handled by deploy.yml (production)
+# and preview.yml (PR previews).
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  push:
+    branches: [main, claude/book-club-platform-KMBLj]
+  pull_request:
+    branches: [main, claude/book-club-platform-KMBLj]
+
+concurrency:
+  # Cancel in-progress runs for the same PR/branch to save minutes
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Type-check & lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Prisma generates types from schema.prisma — required before tsc
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # Validate the schema is syntactically correct (no DB connection needed)
+      - name: Validate Prisma schema
+        run: npx prisma validate

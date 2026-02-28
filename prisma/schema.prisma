@@ -3,17 +3,23 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl is used by Prisma Accelerate / PgBouncer for migrations.
+  // Set it to the direct (non-pooled) connection when DATABASE_URL points
+  // to a pooler, so `prisma migrate` bypasses the pooler.
+  directUrl = env("DIRECT_URL")
 }
 
-// ─── Auth Models ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// AUTH  (NextAuth v4 — do not rename these models or fields)
+// ═══════════════════════════════════════════════════════════════
 
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
-  provider          String
+  provider          String          // "google" | "apple" | "credentials"
   providerAccountId String
   refresh_token     String? @db.Text
   access_token      String? @db.Text
@@ -34,7 +40,8 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -47,7 +54,43 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ─── Core Models ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// EXTERNAL PROFILE  (raw SSO data — source of truth for sync)
+// ═══════════════════════════════════════════════════════════════
+
+// Captured once per provider on first sign-in, refreshed on every
+// subsequent sign-in so downstream consumers always have fresh data.
+model ExternalProfile {
+  id         String  @id @default(cuid())
+  userId     String
+  provider   String  // "google" | "apple" | "github" — matches Account.provider
+  providerId String  // sub / uid from the provider's token
+
+  // Normalised fields — null-safe, provider may omit any of these
+  email      String?
+  name       String?
+  givenName  String?
+  familyName String?
+  image      String?
+  locale     String? // e.g. "en-US"
+  timezone   String?
+
+  // Raw payload — store the full profile object so we can extract
+  // new fields later without re-auth flows
+  rawData    Json
+
+  syncedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([provider, providerId])
+}
+
+// ═══════════════════════════════════════════════════════════════
+// USER
+// ═══════════════════════════════════════════════════════════════
 
 model User {
   id            String    @id @default(cuid())
@@ -55,40 +98,54 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  password      String?
+  password      String?   // null for OAuth-only accounts
+
+  // Track which provider populated each display field so UI can
+  // show "Synced from Google" and allow the user to override.
+  nameSource    DataSource @default(USER)
+  imageSource   DataSource @default(USER)
+
+  // Profile
   bio           String?   @db.Text
   location      String?
   language      String    @default("en")
 
   // Reading preferences
-  favoriteGenres  String[]  @default([])
+  favoriteGenres   String[] @default([])
   currentlyReading String?
-  readingGoal     Int       @default(12)
+  readingGoal      Int      @default(12)
   booksReadThisYear Int     @default(0)
 
   // Subscription
-  tier            SubscriptionTier @default(FREE)
-  stripeCustomerId String?  @unique
-  stripeSubId      String?  @unique
+  tier             SubscriptionTier @default(FREE)
+  stripeCustomerId String?          @unique
+  stripeSubId      String?          @unique
   tierExpiresAt    DateTime?
 
-  // Matching
-  matchesLeftToday Int      @default(5)
-  lastMatchReset   DateTime @default(now())
+  // NOTE: match rate-limit counters live in MatchQuota (separate table)
+  // to avoid hot-row lock contention on User during concurrent requests.
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?            // soft delete
 
   // Relations
-  accounts      Account[]
-  sessions      Session[]
-  spaces        SpaceMember[]
-  ownedSpaces   Space[]        @relation("SpaceOwner")
-  messages      Message[]
-  sentMatches   Match[]        @relation("MatchSender")
-  receivedMatches Match[]      @relation("MatchReceiver")
-  userBooks     UserBook[]
-  notifications Notification[]
+  accounts           Account[]
+  sessions           Session[]
+  externalProfiles   ExternalProfile[]
+  spaces             SpaceMember[]
+  ownedSpaces        Space[]           @relation("SpaceOwner")
+  messages           Message[]
+  sentMatches        Match[]           @relation("MatchSender")
+  receivedMatches    Match[]           @relation("MatchReceiver")
+  userBooks          UserBook[]
+  notifications      Notification[]
+  callParticipations CallParticipant[]
+  matchQuota         MatchQuota?
+
+  @@index([email])
+  @@index([tier])
+  @@index([deletedAt])
 }
 
 enum SubscriptionTier {
@@ -96,17 +153,60 @@ enum SubscriptionTier {
   PREMIUM
 }
 
+// Indicates who last wrote a user-facing field. Used by the
+// profile API to decide whether to overwrite on SSO refresh.
+enum DataSource {
+  USER        // user explicitly edited this field
+  GOOGLE
+  APPLE
+  SYSTEM      // set programmatically by the platform
+}
+
+// ─── Match rate-limit quota (separated from User to avoid hot rows) ─────────
+//
+// Problem: If matchesLeftToday lived on User, every swipe would UPDATE the
+// User row — the same row also written by logins, profile edits, and tier
+// changes. Under concurrent load, these writes queue behind each other
+// (row-level locking) causing latency spikes.
+//
+// Solution: Isolate the counter in its own table. Contention is now scoped
+// to MatchQuota only, and User reads remain unblocked.
+//
+// Reset strategy: a cron job (or the first swipe after midnight) calls
+// `upsert` with count=0 and resets the date. No background worker needed.
+
+model MatchQuota {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  usedToday  Int      @default(0)
+  resetDate  DateTime @default(now()) // date portion compared; time ignored
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([resetDate])
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOKS
+// ═══════════════════════════════════════════════════════════════
+
 model Book {
-  id          String   @id @default(cuid())
-  title       String
-  author      String
-  isbn        String?  @unique
-  coverUrl    String?
-  description String?  @db.Text
-  genre       String[]
-  pageCount   Int?
-  publishedAt DateTime?
-  language    String   @default("en")
+  id            String   @id @default(cuid())
+  title         String
+  author        String
+  isbn          String?  @unique  // prefer isbn13
+  isbn13        String?  @unique
+  isbn10        String?  @unique
+  googleBooksId String?  @unique  // for fetching covers / metadata
+  openLibraryId String?  @unique  // fallback open source metadata
+  coverUrl      String?
+  description   String?  @db.Text
+  genre         String[]
+  pageCount     Int?
+  publishedAt   DateTime?
+  publisher     String?
+  language      String   @default("en")
+  averageRating Float?   // cached aggregate, updated by trigger / cron
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -117,22 +217,24 @@ model Book {
 
   @@index([title])
   @@index([author])
+  @@index([googleBooksId])
 }
 
 model UserBook {
-  id        String         @id @default(cuid())
-  userId    String
-  bookId    String
-  status    ReadingStatus  @default(READING)
-  progress  Int            @default(0) // percentage
-  startedAt DateTime       @default(now())
+  id         String        @id @default(cuid())
+  userId     String
+  bookId     String
+  status     ReadingStatus @default(READING)
+  progress   Int           @default(0) // 0–100 %
+  startedAt  DateTime      @default(now())
   finishedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@unique([userId, bookId])
-  @@index([userId])
+  // Reading list page: WHERE userId = ? AND status = ? — very common filter
+  @@index([userId, status])
   @@index([bookId])
 }
 
@@ -143,7 +245,9 @@ enum ReadingStatus {
   ABANDONED
 }
 
-// ─── Spaces (Discussion Rooms) ──────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// SPACES (Discussion Rooms)
+// ═══════════════════════════════════════════════════════════════
 
 model Space {
   id          String    @id @default(cuid())
@@ -166,17 +270,22 @@ model Space {
   updatedAt DateTime @updatedAt
 
   // Relations
-  book    Book          @relation(fields: [bookId], references: [id])
-  owner   User          @relation("SpaceOwner", fields: [ownerId], references: [id])
-  members SpaceMember[]
-  messages Message[]
+  book        Book            @relation(fields: [bookId], references: [id])
+  owner       User            @relation("SpaceOwner", fields: [ownerId], references: [id])
+  members     SpaceMember[]
+  messages    Message[]
+  callSession CallSession?    // at most one active VOIP session per space
 
   @@index([bookId])
   @@index([ownerId])
-  @@index([isActive])
+  // Home feed: active spaces sorted by recency — covers the most common query:
+  // WHERE isActive = true AND language = ? ORDER BY createdAt DESC
+  @@index([isActive, language, createdAt(sort: Desc)])
+  // Type filter overlay: same feed filtered by CHAT | CALL | HYBRID
+  @@index([isActive, type, createdAt(sort: Desc)])
+  // Genre is a String[] (array column) — Postgres GIN index handles this;
+  // declared here so prisma migrate generates it correctly.
   @@index([genre])
-  @@index([language])
-  @@index([createdAt])
 }
 
 enum SpaceType {
@@ -199,6 +308,8 @@ model SpaceMember {
   @@unique([userId, spaceId])
   @@index([userId])
   @@index([spaceId])
+  // Moderator lookup — used by requireSpaceMod on every protected action
+  @@index([spaceId, role])
 }
 
 enum SpaceMemberRole {
@@ -229,20 +340,151 @@ enum MessageType {
   IMAGE
 }
 
-// ─── Matching System ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// VOIP — CALL SESSIONS
+//
+// Provider-agnostic. Switch between Agora / Twilio / Daily /
+// LiveKit by changing VoipProvider without touching app logic.
+// The token endpoint reads `provider` and calls the correct SDK.
+// ═══════════════════════════════════════════════════════════════
 
-model Match {
-  id         String      @id @default(cuid())
-  senderId   String
-  receiverId String
-  status     MatchStatus @default(PENDING)
-  bookContext String?    // what book connected them
-  message    String?     @db.Text
+model CallSession {
+  id             String       @id @default(cuid())
+  spaceId        String       @unique  // one active session per space at a time
+
+  // Provider info — stored so token refresh can use the correct SDK
+  provider       VoipProvider
+  providerRoomId String       // Agora channel name | Twilio roomSid | Daily room name | LiveKit room
+  providerRegion String?      // optional: "us-east-1", "ap-southeast-1" etc.
+
+  // Flexible JSON for any provider-specific fields (e.g. Agora appId,
+  // Twilio accountSid) — never store secrets here, only public identifiers.
+  providerMeta   Json?
+
+  status           CallStatus @default(WAITING)
+  recordingEnabled Boolean    @default(false)
+  recordingUrl     String?    // populated by provider webhook after session ends
+  maxParticipants  Int        @default(20)
+
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  endedAt     DateTime?
+  durationSec Int?          // set when status → ENDED
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sender   User @relation("MatchSender", fields: [senderId], references: [id], onDelete: Cascade)
+  space        Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  participants CallParticipant[]
+
+  @@index([status])
+  @@index([provider])
+}
+
+enum VoipProvider {
+  AGORA
+  TWILIO
+  DAILY
+  LIVEKIT
+  JITSI
+  HUNDREDMS
+}
+
+enum CallStatus {
+  SCHEDULED   // created ahead of time, not live yet
+  WAITING     // room created, host has not joined
+  LIVE        // at least one participant is present
+  ENDED       // session closed normally
+  CANCELLED   // cancelled before starting
+  FAILED      // provider error
+}
+
+// Tracks each user's join/leave events within a session.
+// Multiple rows per user are possible (reconnections).
+model CallParticipant {
+  id          String   @id @default(cuid())
+  sessionId   String
+  userId      String
+
+  // Provider assigns its own UID for the session (Agora uid, Twilio
+  // participant SID, etc.) — needed for server-side mute/kick APIs.
+  providerUid String?
+
+  role      CallRole @default(LISTENER)
+  isMuted   Boolean  @default(false)
+  isVideoOn Boolean  @default(false)
+
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+
+  session CallSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([userId])
+}
+
+enum CallRole {
+  HOST      // space owner or assigned moderator
+  SPEAKER   // participant with mic/camera rights
+  LISTENER  // audience-only (read-only in HYBRID spaces)
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WEBHOOK INGESTION LOG
+//
+// Single table for Stripe + all VOIP provider webhooks.
+// externalId + source form a unique key for idempotency so
+// replayed events are safely deduplicated.
+// ═══════════════════════════════════════════════════════════════
+
+model WebhookLog {
+  id          String        @id @default(cuid())
+  source      WebhookSource
+  eventType   String        // e.g. "invoice.payment_succeeded", "RoomEnded"
+  externalId  String?       // provider's event ID (Stripe event id, Agora msg id)
+  payload     Json          // raw body — stored for debugging / replay
+  status      WebhookStatus @default(PENDING)
+  error       String?       @db.Text
+  processedAt DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@unique([source, externalId])   // idempotency guard
+  @@index([source, status])
+  @@index([createdAt])
+}
+
+enum WebhookSource {
+  STRIPE
+  AGORA
+  TWILIO
+  DAILY
+  LIVEKIT
+}
+
+enum WebhookStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  IGNORED   // valid event, nothing to act on (e.g. unknown type)
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MATCHING SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+model Match {
+  id          String      @id @default(cuid())
+  senderId    String
+  receiverId  String
+  status      MatchStatus @default(PENDING)
+  bookContext String?     // bookId that connected them
+  message     String?     @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sender   User @relation("MatchSender",   fields: [senderId],   references: [id], onDelete: Cascade)
   receiver User @relation("MatchReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
 
   @@unique([senderId, receiverId])
@@ -258,7 +500,9 @@ enum MatchStatus {
   EXPIRED
 }
 
-// ─── Notifications ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════
 
 model Notification {
   id        String           @id @default(cuid())
@@ -272,8 +516,8 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, read])
-  @@index([createdAt])
+  // Notification bell: unread count + sorted feed in a single index scan
+  @@index([userId, read, createdAt(sort: Desc)])
 }
 
 enum NotificationType {
@@ -282,5 +526,6 @@ enum NotificationType {
   NEW_MESSAGE
   SPACE_INVITE
   SUBSCRIPTION
+  CALL_STARTING   // pushed ~5 min before scheduledAt
   SYSTEM
 }

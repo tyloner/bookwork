@@ -1,0 +1,118 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Preview Deploy — runs on every pull request
+#
+# Creates a unique Vercel Preview URL for each PR so reviewers can test
+# the exact code before it hits production.
+#
+# Preview deployments use a separate database (staging/preview Postgres).
+# They do NOT run migrations — the preview DB is expected to be pre-seeded
+# or use a Neon/PlanetScale branch.
+#
+# Required GitHub Secrets (repo-level, Settings → Secrets → Actions):
+#   VERCEL_TOKEN
+#   VERCEL_ORG_ID
+#   VERCEL_PROJECT_ID
+#
+# The preview URL is posted back to the PR as a comment automatically
+# by Vercel's GitHub integration. If you're using pure GitHub Actions
+# (no Vercel GitHub app), the URL is posted via the step below.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Preview Deploy
+
+on:
+  pull_request:
+    branches: [main, claude/book-club-platform-KMBLj]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  # One preview deploy per PR at a time; cancel the old one when a new
+  # commit is pushed to the same PR
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Deploy preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging   # uses staging secrets (preview DB URL etc.)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel preview environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy preview
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # Post the preview URL as a PR comment
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const previewUrl = '${{ steps.deploy.outputs.url }}';
+            const prNumber = context.payload.pull_request.number;
+            const sha = context.payload.pull_request.head.sha.substring(0, 7);
+
+            // Find and update an existing bot comment, or create a new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Preview deployment')
+            );
+
+            const body = [
+              '### Preview deployment',
+              '',
+              `**URL:** ${previewUrl}`,
+              `**Commit:** \`${sha}\``,
+              '',
+              '_Automatically deployed by GitHub Actions._',
+            ].join('\n');
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }
