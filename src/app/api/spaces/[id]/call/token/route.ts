@@ -48,74 +48,29 @@ async function getDailyToken(roomName: string, userId: string, isOwner: boolean)
   return { token: data.token, expiresAt: new Date(expiresAt * 1000).toISOString() };
 }
 
-async function getLiveKitToken(roomName: string, userId: string, isOwner: boolean) {
-  // LiveKit uses a signed JWT — install `livekit-server-sdk` for production.
-  // This stub shows the shape; replace with AccessToken from the SDK.
-  const { AccessToken } = await import(/* webpackIgnore: true */ "livekit-server-sdk").catch(() => {
-    throw new Error("livekit-server-sdk not installed. Run: npm i livekit-server-sdk");
-  });
-
-  const at = new AccessToken(
-    process.env.LIVEKIT_API_KEY!,
-    process.env.LIVEKIT_API_SECRET!,
-    { identity: userId, ttl: TOKEN_TTL_SECONDS }
-  );
-  at.addGrant({
-    roomJoin: true,
-    room: roomName,
-    canPublish: isOwner,
-    canSubscribe: true,
-  });
-
-  const token = await at.toJwt();
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_SECONDS * 1000).toISOString();
-  return { token, expiresAt };
+// Stub — install livekit-server-sdk and replace with real implementation
+async function getLiveKitToken(
+  _roomName: string,
+  _userId: string,
+  _isOwner: boolean
+): Promise<{ token: string; expiresAt: string }> {
+  throw new Error("LiveKit not configured. Install livekit-server-sdk and set LIVEKIT_API_KEY/SECRET.");
 }
 
-async function getAgoraToken(channelName: string, userId: string) {
-  // Agora tokens are generated with the RtcTokenBuilder from agora-access-token.
-  // Install: npm i agora-access-token
-  const { RtcTokenBuilder, RtcRole } = await import(/* webpackIgnore: true */ "agora-access-token").catch(() => {
-    throw new Error("agora-access-token not installed. Run: npm i agora-access-token");
-  });
-
-  const uid = Math.floor(Math.random() * 100000); // Agora uses numeric UIDs
-  const expiresAt = Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS;
-  const token = RtcTokenBuilder.buildTokenWithUid(
-    process.env.AGORA_APP_ID!,
-    process.env.AGORA_APP_CERTIFICATE!,
-    channelName,
-    uid,
-    RtcRole.PUBLISHER,
-    expiresAt
-  );
-
-  return {
-    token,
-    uid,
-    expiresAt: new Date(expiresAt * 1000).toISOString(),
-  };
+// Stub — install agora-access-token and replace with real implementation
+async function getAgoraToken(
+  _channelName: string,
+  _userId: string
+): Promise<{ token: string; uid: number; expiresAt: string }> {
+  throw new Error("Agora not configured. Install agora-access-token and set AGORA_APP_ID/CERTIFICATE.");
 }
 
-async function getTwilioToken(roomSid: string, userId: string) {
-  // Twilio uses an AccessToken with a VideoGrant — install: npm i twilio
-  const twilio = await import(/* webpackIgnore: true */ "twilio").catch(() => {
-    throw new Error("twilio not installed. Run: npm i twilio");
-  });
-
-  const { AccessToken } = twilio.default.jwt;
-  const { VideoGrant } = AccessToken;
-
-  const token = new AccessToken(
-    process.env.TWILIO_ACCOUNT_SID!,
-    process.env.TWILIO_API_KEY!,
-    process.env.TWILIO_API_SECRET!,
-    { identity: userId, ttl: TOKEN_TTL_SECONDS }
-  );
-  token.addGrant(new VideoGrant({ room: roomSid }));
-
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_SECONDS * 1000).toISOString();
-  return { token: token.toJwt(), expiresAt };
+// Stub — install twilio and replace with real implementation
+async function getTwilioToken(
+  _roomSid: string,
+  _userId: string
+): Promise<{ token: string; expiresAt: string }> {
+  throw new Error("Twilio not configured. Install twilio and set TWILIO_ACCOUNT_SID/API_KEY/SECRET.");
 }
 
 // ── GET handler ───────────────────────────────────────────────────────────────
