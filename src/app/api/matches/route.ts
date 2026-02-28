@@ -38,6 +38,8 @@ async function incrementQuota(userId: string) {
 
 // ── GET: Fetch potential matches ───────────────────────────────────────────────
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);

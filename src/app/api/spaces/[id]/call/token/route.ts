@@ -75,6 +75,8 @@ async function getTwilioToken(
 
 // ── GET handler ───────────────────────────────────────────────────────────────
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }

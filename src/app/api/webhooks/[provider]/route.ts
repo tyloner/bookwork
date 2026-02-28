@@ -130,6 +130,8 @@ async function handleParticipantLeft(roomId: string, providerUid: string) {
 
 // ── POST handler ──────────────────────────────────────────────────────────────
 
+export const dynamic = "force-dynamic";
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { provider: string } }
