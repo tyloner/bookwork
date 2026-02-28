@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { WebhookSource } from "@prisma/client";
+import type { WebhookSource, Prisma } from "@prisma/client";
 
 // ── Signature verifiers ───────────────────────────────────────────────────────
 
@@ -212,10 +212,10 @@ export async function POST(
       source,
       eventType: event.eventType,
       externalId: event.externalId,
-      payload,
+      payload: payload as Prisma.InputJsonValue,
       status: "PENDING",
     },
-    update: { payload, status: "PENDING" },
+    update: { payload: payload as Prisma.InputJsonValue, status: "PENDING" },
   });
 
   // Dispatch side-effects
