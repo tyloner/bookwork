@@ -6,20 +6,20 @@ import { Providers } from "@/components/providers";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "BookWork — Connect with Readers",
+  title: "BookWrm — Connect with Readers",
   description:
     "Find readers who share your taste. Discuss books in real-time. Join the reading community built for thoughtful conversation.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "BookWork",
+    title: "BookWrm",
   },
   openGraph: {
     type: "website",
-    title: "BookWork — Connect with Readers",
+    title: "BookWrm — Connect with Readers",
     description: "Find readers who share your taste. Discuss books in real-time.",
-    siteName: "BookWork",
+    siteName: "BookWrm",
   },
 };
 

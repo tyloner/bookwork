@@ -4,7 +4,6 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BookOpen,
   Home,
   Heart,
   MessageCircle,
@@ -17,6 +16,7 @@ import {
   Plus,
   Bell,
 } from "lucide-react";
+import { WormLogo } from "@/components/WormLogo";
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/lib/store";
 import { Avatar } from "@/components/ui/avatar";
@@ -58,9 +58,9 @@ export function Sidebar() {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-ink-100">
           <Link href="/" className="flex items-center gap-2.5" onClick={close}>
-            <BookOpen className="w-7 h-7 text-sage-600" />
+            <WormLogo className="w-7 h-7" />
             <span className="text-xl font-serif font-bold text-ink-900">
-              BookWork
+              BookWrm
             </span>
           </Link>
           <button

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BookOpen,
   ArrowRight,
   ArrowLeft,
   MapPin,
@@ -11,6 +10,7 @@ import {
   Check,
 } from "lucide-react";
 import { cn, GENRES, LANGUAGES } from "@/lib/utils";
+import { WormLogo } from "@/components/WormLogo";
 
 type Step = 1 | 2 | 3;
 
@@ -102,11 +102,11 @@ export default function OnboardingPage() {
           <div className="animate-fade-in">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-sage-100 rounded-lg">
-                <BookOpen className="w-6 h-6 text-sage-600" />
+                <WormLogo className="w-6 h-6" />
               </div>
               <div>
                 <h1 className="text-xl font-serif font-bold text-ink-900">
-                  Welcome to BookWork
+                  Welcome to BookWrm
                 </h1>
                 <p className="text-sm text-ink-400">
                   Tell us about yourself

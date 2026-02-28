@@ -1,6 +1,6 @@
 {
-  "name": "BookWork",
-  "short_name": "BookWork",
+  "name": "BookWrm",
+  "short_name": "BookWrm",
   "description": "Connect with readers. Discuss books together.",
   "start_url": "/",
   "display": "standalone",

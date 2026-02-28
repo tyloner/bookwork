@@ -3,7 +3,8 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BookOpen, Mail, Lock, User, ArrowRight, Chrome } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Chrome } from "lucide-react";
+import { WormLogo } from "@/components/WormLogo";
 
 function SignInForm() {
   const router = useRouter();
@@ -60,8 +61,8 @@ function SignInForm() {
       <div className="hidden lg:flex lg:w-1/2 bg-ink-900 text-cream-50 flex-col justify-between p-12">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <BookOpen className="w-8 h-8 text-sage-400" />
-            <span className="text-2xl font-serif font-bold">BookWork</span>
+            <WormLogo className="w-8 h-8" />
+            <span className="text-2xl font-serif font-bold">BookWrm</span>
           </div>
           <p className="text-ink-300 text-sm">Connect with readers</p>
         </div>
@@ -90,7 +91,7 @@ function SignInForm() {
         </div>
 
         <p className="text-ink-500 text-xs">
-          &copy; 2026 BookWork. All rights reserved.
+          &copy; 2026 BookWrm. All rights reserved.
         </p>
       </div>
 
@@ -99,8 +100,8 @@ function SignInForm() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <BookOpen className="w-8 h-8 text-sage-600" />
-            <span className="text-2xl font-serif font-bold text-ink-900">BookWork</span>
+            <WormLogo className="w-8 h-8" />
+            <span className="text-2xl font-serif font-bold text-ink-900">BookWrm</span>
           </div>
 
           <h1 className="text-2xl font-serif font-bold text-ink-900 mb-1">

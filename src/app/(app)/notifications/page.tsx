@@ -59,7 +59,7 @@ const DEMO_NOTIFICATIONS: Notification[] = [
   {
     id: "n5",
     type: "SYSTEM",
-    title: "Welcome to BookWork!",
+    title: "Welcome to BookWrm!",
     body: "Complete your profile and start connecting with readers who share your taste.",
     read: true,
     createdAt: new Date(Date.now() - 172800000).toISOString(),

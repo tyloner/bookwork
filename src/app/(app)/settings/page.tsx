@@ -119,7 +119,7 @@ export default function SettingsPage() {
         {
           icon: Smartphone,
           label: "Install app",
-          description: "Add BookWork to your home screen",
+          description: "Add BookWrm to your home screen",
           type: "link",
           href: "#install",
         },
@@ -289,7 +289,7 @@ export default function SettingsPage() {
         ))}
 
         <p className="text-center text-xs text-ink-300 pb-4">
-          BookWork v0.1.0
+          BookWrm v0.1.0
         </p>
       </div>
     </div>

@@ -62,7 +62,7 @@ export default function PremiumPage() {
             <Crown className="w-8 h-8 text-amber-600" />
           </div>
           <h1 className="text-2xl font-serif font-bold text-ink-900 mb-2">
-            BookWork Premium
+            BookWrm Premium
           </h1>
           <p className="text-sm text-ink-500 max-w-sm mx-auto leading-relaxed">
             Unlimited connections. Unlimited spaces. No limits on your reading journey.
