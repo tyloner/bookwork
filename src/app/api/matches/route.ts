@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ReadingStatus } from "@prisma/client";
 
 const FREE_DAILY_LIMIT = 5;
 
@@ -87,7 +88,7 @@ export async function GET() {
         deletedAt: null,
         OR: [
           ...(bookIds.length > 0
-            ? [{ userBooks: { some: { bookId: { in: bookIds }, status: "READING" } } }]
+            ? [{ userBooks: { some: { bookId: { in: bookIds }, status: ReadingStatus.READING } } }]
             : []),
           ...(myAuthors.length > 0
             ? [{ favoriteAuthors: { hasSome: myAuthors } }]
