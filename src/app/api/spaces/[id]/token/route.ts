@@ -35,7 +35,9 @@ export async function POST(
 
     if (!apiKey || !apiSecret) {
       return NextResponse.json(
-        { error: "LiveKit not configured" },
+        {
+          error: `LiveKit not configured: missing ${!apiKey ? "LIVEKIT_API_KEY" : ""}${!apiKey && !apiSecret ? " and " : ""}${!apiSecret ? "LIVEKIT_API_SECRET" : ""}`,
+        },
         { status: 500 }
       );
     }
