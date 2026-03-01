@@ -119,6 +119,7 @@ export default function SpaceDetailPage() {
   const [isExtending, setIsExtending] = useState(false);
   const [livekitToken, setLivekitToken] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
+  const [callError, setCallError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const userId = (session?.user as { id?: string })?.id;
 
@@ -126,17 +127,23 @@ export default function SpaceDetailPage() {
     if (inCall) {
       setInCall(false);
       setLivekitToken(null);
+      setCallError(null);
       return;
     }
     setTokenLoading(true);
+    setCallError(null);
     try {
       const res = await fetch(`/api/spaces/${params.id}/token`, { method: "POST" });
+      const data = await res.json();
       if (res.ok) {
-        const { token } = await res.json();
-        setLivekitToken(token);
+        setLivekitToken(data.token);
         setInCall(true);
+      } else {
+        setCallError(data.error ?? "Could not join call");
       }
-    } catch { /* ignore */ }
+    } catch {
+      setCallError("Could not connect — check your internet connection");
+    }
     setTokenLoading(false);
   };
 
@@ -305,10 +312,11 @@ export default function SpaceDetailPage() {
           </div>
 
           <div className="flex items-center gap-1">
-            {(space?.type === "CALL" || space?.type === "HYBRID") && (
+            {space && (
               <button
                 onClick={handleCallToggle}
                 disabled={tokenLoading}
+                title={inCall ? "Leave call" : "Join voice call"}
                 className={cn(
                   "p-2 rounded-lg transition-colors",
                   inCall
@@ -346,6 +354,13 @@ export default function SpaceDetailPage() {
           </div>
         </div>
 
+        {/* Call error */}
+        {callError && (
+          <div className="bg-red-50 border-b border-red-200 px-4 py-2 text-center text-xs text-red-600">
+            {callError}
+          </div>
+        )}
+
         {/* LiveKit audio room */}
         {inCall && livekitToken && (
           <LiveKitRoom
@@ -354,7 +369,7 @@ export default function SpaceDetailPage() {
             token={livekitToken}
             serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
             connect={true}
-            onDisconnected={() => { setInCall(false); setLivekitToken(null); }}
+            onDisconnected={() => { setInCall(false); setLivekitToken(null); setCallError(null); }}
             className="bg-emerald-500"
           >
             <div className="px-4 py-2 text-white text-sm font-medium">
