@@ -105,7 +105,7 @@ export async function POST(request: Request) {
 
     const userId = (session.user as { id: string }).id;
     const body = await request.json();
-    const { name, description, bookId, type, maxMembers, language, genre, scheduledAt, duration } = body;
+    const { name, description, bookId, type, maxMembers, language, genre, scheduledAt, duration, expiryDays, rules } = body;
 
     if (!name || !bookId) {
       return NextResponse.json(
@@ -113,6 +113,14 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    const validDays = [7, 14, 30];
+    const safeExpiryDays = validDays.includes(expiryDays) ? expiryDays : 7;
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + safeExpiryDays);
+
+    const validRules = ["ACTIVE_READERS_ONLY", "SPOILER_EXPULSION"];
+    const safeRules = (rules || []).filter((r: string) => validRules.includes(r));
 
     const space = await prisma.space.create({
       data: {
@@ -126,6 +134,9 @@ export async function POST(request: Request) {
         genre: genre || [],
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         duration: duration || null,
+        expiryDays: safeExpiryDays,
+        expiresAt,
+        rules: safeRules,
         members: {
           create: {
             userId,

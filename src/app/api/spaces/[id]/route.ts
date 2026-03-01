@@ -27,7 +27,7 @@ export async function GET(
           orderBy: { createdAt: "desc" },
           take: 50,
         },
-        _count: { select: { messages: true, members: true } },
+        _count: { select: { messages: true, members: true, extensionVotes: true } },
       },
     });
 

@@ -25,11 +25,19 @@ export async function GET() {
         location: true,
         language: true,
         favoriteGenres: true,
+        favoriteAuthors: true,
         currentlyReading: true,
         readingGoal: true,
         booksReadThisYear: true,
         tier: true,
         createdAt: true,
+        userBooks: {
+          where: { status: "READING" },
+          include: {
+            book: { select: { id: true, title: true, author: true, coverUrl: true } },
+          },
+          take: 10,
+        },
       },
     });
 
@@ -63,6 +71,7 @@ export async function PATCH(request: Request) {
       "location",
       "language",
       "favoriteGenres",
+      "favoriteAuthors",
       "readingGoal",
       "image",
     ];

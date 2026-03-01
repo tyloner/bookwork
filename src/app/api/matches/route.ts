@@ -49,6 +49,12 @@ export async function GET() {
 
     const userId = (session.user as { id: string }).id;
 
+    // Get current user's profile for scoring
+    const me = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { favoriteAuthors: true, favoriteGenres: true },
+    });
+
     // Get user's currently reading books
     const userBooks = await prisma.userBook.findMany({
       where: { userId, status: "READING" },
@@ -71,16 +77,25 @@ export async function GET() {
       excludeIds.add(m.receiverId);
     });
 
-    // Find readers with the same books
-    const potentialMatches = await prisma.user.findMany({
+    const myAuthors = me?.favoriteAuthors ?? [];
+    const myGenres = me?.favoriteGenres ?? [];
+
+    // Broadened query: shared book OR shared author OR shared genre
+    const candidates = await prisma.user.findMany({
       where: {
         id: { notIn: Array.from(excludeIds) },
-        userBooks: {
-          some: {
-            bookId: { in: bookIds },
-            status: "READING",
-          },
-        },
+        deletedAt: null,
+        OR: [
+          ...(bookIds.length > 0
+            ? [{ userBooks: { some: { bookId: { in: bookIds }, status: "READING" } } }]
+            : []),
+          ...(myAuthors.length > 0
+            ? [{ favoriteAuthors: { hasSome: myAuthors } }]
+            : []),
+          ...(myGenres.length > 0
+            ? [{ favoriteGenres: { hasSome: myGenres } }]
+            : []),
+        ],
       },
       include: {
         userBooks: {
@@ -89,35 +104,54 @@ export async function GET() {
           take: 5,
         },
       },
-      take: 20,
+      take: 50,
     });
 
-    // Format for the frontend
-    const profiles = potentialMatches.map((user) => {
-      const sharedBooks = user.userBooks
-        .filter((ub) => bookIds.includes(ub.bookId))
-        .map((ub) => ub.book);
+    // Score and sort candidates in memory
+    const scored = candidates
+      .map((candidate) => {
+        let score = 0;
 
-      return {
-        id: user.id,
-        name: user.name,
-        image: user.image,
-        bio: user.bio,
-        location: user.location,
-        favoriteGenres: user.favoriteGenres,
-        currentlyReading: user.userBooks.map((ub) => ({
-          title: ub.book.title,
-          author: ub.book.author,
-          coverUrl: ub.book.coverUrl,
-          progress: ub.progress,
-        })),
-        sharedBooks: sharedBooks.map((b) => ({
-          title: b.title,
-          author: b.author,
-        })),
-        booksReadThisYear: user.booksReadThisYear,
-      };
-    });
+        const sharedBooks = candidate.userBooks
+          .filter((ub) => bookIds.includes(ub.bookId))
+          .map((ub) => ub.book);
+        if (sharedBooks.length > 0) score += 50;
+
+        const sharedAuthors = candidate.favoriteAuthors.filter((a) =>
+          myAuthors.includes(a)
+        );
+        score += Math.min(sharedAuthors.length * 30, 60);
+
+        const sharedGenres = candidate.favoriteGenres.filter((g) =>
+          myGenres.includes(g)
+        );
+        score += Math.min(sharedGenres.length * 10, 30);
+
+        return { candidate, score, sharedBooks, sharedAuthors, sharedGenres };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20);
+
+    const profiles = scored.map(({ candidate, score, sharedBooks, sharedAuthors, sharedGenres }) => ({
+      id: candidate.id,
+      name: candidate.name,
+      image: candidate.image,
+      bio: candidate.bio,
+      location: candidate.location,
+      favoriteGenres: candidate.favoriteGenres,
+      favoriteAuthors: candidate.favoriteAuthors,
+      currentlyReading: candidate.userBooks.map((ub) => ({
+        title: ub.book.title,
+        author: ub.book.author,
+        coverUrl: ub.book.coverUrl,
+        progress: ub.progress,
+      })),
+      sharedBooks: sharedBooks.map((b) => ({ title: b.title, author: b.author })),
+      sharedAuthors,
+      sharedGenres,
+      matchScore: score,
+      booksReadThisYear: candidate.booksReadThisYear,
+    }));
 
     return NextResponse.json({ profiles });
   } catch (error) {

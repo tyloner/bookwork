@@ -27,5 +27,10 @@ export async function GET(req: NextRequest) {
     data: { status: "EXPIRED" },
   });
 
-  return NextResponse.json({ expired: result.count });
+  const expiredSpaces = await prisma.space.updateMany({
+    where: { isActive: true, expiresAt: { lte: new Date() } },
+    data: { isActive: false },
+  });
+
+  return NextResponse.json({ expired: result.count, expiredSpaces: expiredSpaces.count });
 }

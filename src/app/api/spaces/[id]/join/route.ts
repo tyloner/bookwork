@@ -40,6 +40,19 @@ export async function POST(
       );
     }
 
+    // Enforce ACTIVE_READERS_ONLY rule
+    if (space.rules.includes("ACTIVE_READERS_ONLY")) {
+      const isReading = await prisma.userBook.findFirst({
+        where: { userId, bookId: space.bookId, status: "READING" },
+      });
+      if (!isReading) {
+        return NextResponse.json(
+          { error: "This space requires you to be actively reading the book. Add it to your reading list with status READING to join." },
+          { status: 403 }
+        );
+      }
+    }
+
     const existing = await prisma.spaceMember.findUnique({
       where: { userId_spaceId: { userId, spaceId: params.id } },
     });

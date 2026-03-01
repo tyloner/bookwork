@@ -4,12 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import {
+  AutocompleteInput,
+  type BookResult,
+  type AuthorResult,
+} from "@/components/ui/autocomplete-input";
+import {
   BookOpen,
   MessageCircle,
   Phone,
   Zap,
   ChevronDown,
   ArrowLeft,
+  Clock,
+  ShieldCheck,
 } from "lucide-react";
 import { cn, GENRES, LANGUAGES } from "@/lib/utils";
 import Link from "next/link";
@@ -25,13 +32,35 @@ export default function CreateSpacePage() {
     description: "",
     bookTitle: "",
     bookAuthor: "",
+    _coverUrl: null as string | null,
     type: "CHAT" as SpaceType,
     maxMembers: 20,
     language: "en",
     genres: [] as string[],
     scheduledAt: "",
     duration: 60,
+    expiryDays: 7,
+    rules: [] as string[],
   });
+
+  const handleBookSelect = (result: BookResult | AuthorResult) => {
+    const book = result as BookResult;
+    setForm((prev) => ({
+      ...prev,
+      bookTitle: book.title,
+      bookAuthor: book.author,
+      _coverUrl: book.coverUrl,
+    }));
+  };
+
+  const toggleRule = (rule: string) => {
+    setForm((prev) => ({
+      ...prev,
+      rules: prev.rules.includes(rule)
+        ? prev.rules.filter((r) => r !== rule)
+        : [...prev.rules, rule],
+    }));
+  };
 
   const toggleGenre = (g: string) => {
     setForm((prev) => ({
@@ -55,6 +84,7 @@ export default function CreateSpacePage() {
         body: JSON.stringify({
           title: form.bookTitle,
           author: form.bookAuthor,
+          coverUrl: form._coverUrl,
           genre: form.genres,
           language: form.language,
         }),
@@ -80,6 +110,8 @@ export default function CreateSpacePage() {
           genre: form.genres,
           scheduledAt: form.scheduledAt || null,
           duration: form.type !== "CHAT" ? form.duration : null,
+          expiryDays: form.expiryDays,
+          rules: form.rules,
         }),
       });
 
@@ -161,21 +193,22 @@ export default function CreateSpacePage() {
               <BookOpen className="w-4 h-4 text-sage-600" />
               Book details
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-ink-500 mb-1">
                   Book title
                 </label>
-                <input
-                  type="text"
-                  value={form.bookTitle}
-                  onChange={(e) =>
-                    setForm({ ...form, bookTitle: e.target.value })
-                  }
-                  placeholder="The Metamorphosis"
-                  className="input-field text-sm"
-                  required
+                <AutocompleteInput
+                  type="book"
+                  placeholder="Search for a book…"
+                  onSelect={handleBookSelect}
+                  inputClassName="text-sm"
                 />
+                {form.bookTitle && (
+                  <p className="text-xs text-sage-600 mt-1">
+                    Selected: <span className="font-medium">{form.bookTitle}</span>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-ink-500 mb-1">
@@ -184,10 +217,8 @@ export default function CreateSpacePage() {
                 <input
                   type="text"
                   value={form.bookAuthor}
-                  onChange={(e) =>
-                    setForm({ ...form, bookAuthor: e.target.value })
-                  }
-                  placeholder="Franz Kafka"
+                  onChange={(e) => setForm({ ...form, bookAuthor: e.target.value })}
+                  placeholder="Auto-filled from search, or type manually"
                   className="input-field text-sm"
                   required
                 />
@@ -226,6 +257,75 @@ export default function CreateSpacePage() {
                     {opt.description}
                   </span>
                 </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Space Duration */}
+          <div>
+            <label className="block text-sm font-medium text-ink-700 mb-2 flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-ink-400" />
+              Space Duration
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[7, 14, 30].map((days) => (
+                <button
+                  key={days}
+                  type="button"
+                  onClick={() => setForm({ ...form, expiryDays: days })}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 p-3 rounded-xl border-2 transition-all",
+                    form.expiryDays === days
+                      ? "border-sage-500 bg-sage-50 text-sage-700"
+                      : "border-ink-100 hover:border-ink-200 text-ink-600"
+                  )}
+                >
+                  <span className="text-sm font-semibold">{days}d</span>
+                  <span className="text-[10px] text-ink-400">
+                    {days === 7 ? "1 week" : days === 14 ? "2 weeks" : "1 month"}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-ink-400 mt-1.5">
+              Space expires automatically. Premium members can vote to extend.
+            </p>
+          </div>
+
+          {/* Space Rules */}
+          <div>
+            <label className="block text-sm font-medium text-ink-700 mb-2 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-ink-400" />
+              Space Rules
+            </label>
+            <div className="space-y-2">
+              {[
+                {
+                  value: "ACTIVE_READERS_ONLY",
+                  label: "Active Readers Only",
+                  description: "Joining requires this book in your READING list.",
+                },
+                {
+                  value: "SPOILER_EXPULSION",
+                  label: "No Spoilers Policy",
+                  description: "Members agree to no spoilers. Violators may be removed.",
+                },
+              ].map((rule) => (
+                <label
+                  key={rule.value}
+                  className="flex items-start gap-3 p-3 rounded-xl border border-ink-100 hover:border-ink-200 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.rules.includes(rule.value)}
+                    onChange={() => toggleRule(rule.value)}
+                    className="mt-0.5 accent-sage-600"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-ink-800">{rule.label}</span>
+                    <p className="text-xs text-ink-400 mt-0.5">{rule.description}</p>
+                  </div>
+                </label>
               ))}
             </div>
           </div>

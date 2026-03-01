@@ -10,13 +10,15 @@ import {
   Phone,
   PhoneOff,
   BookOpen,
-  MoreVertical,
   Info,
-  LogOut as LeaveIcon,
+  Share2,
+  Check,
+  Clock,
+  AlertTriangle,
+  Crown,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
-import Link from "next/link";
 
 interface Message {
   id: string;
@@ -55,7 +57,10 @@ interface SpaceDetail {
     role: string;
     user: { id: string; name: string | null; image: string | null };
   }[];
-  _count: { messages: number; members: number };
+  _count: { messages: number; members: number; extensionVotes?: number };
+  rules: string[];
+  expiresAt: string | null;
+  expiryDays: number;
 }
 
 // Demo messages for display
@@ -107,8 +112,51 @@ export default function SpaceDetailPage() {
   const [isSending, setIsSending] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [inCall, setInCall] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [isExtending, setIsExtending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const userId = (session?.user as { id?: string })?.id;
+
+  const getDaysRemaining = (expiresAt: string) =>
+    Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000));
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: space?.name, url });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleVoteExtend = async () => {
+    if (isExtending || hasVoted) return;
+    setIsExtending(true);
+    try {
+      const res = await fetch(`/api/spaces/${params.id}/extend`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setHasVoted(true);
+        setSpace((prev) =>
+          prev
+            ? {
+                ...prev,
+                expiresAt: data.expiresAt ?? prev.expiresAt,
+                _count: { ...prev._count, extensionVotes: data.voteCount },
+              }
+            : prev
+        );
+      } else if (res.status === 403) {
+        // Not premium — surface via existing error mechanism if needed
+      }
+    } catch { /* ignore */ }
+    setIsExtending(false);
+  };
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -253,6 +301,17 @@ export default function SpaceDetailPage() {
               </button>
             )}
             <button
+              onClick={handleShare}
+              className="p-2 rounded-lg hover:bg-ink-50 text-ink-500"
+              title="Share space"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-emerald-500" />
+              ) : (
+                <Share2 className="w-4 h-4" />
+              )}
+            </button>
+            <button
               onClick={() => setShowInfo(!showInfo)}
               className="p-2 rounded-lg hover:bg-ink-50 text-ink-500"
             >
@@ -292,6 +351,29 @@ export default function SpaceDetailPage() {
               <p className="text-xs text-ink-300 mt-2">
                 Conversation started {space ? formatDate(space.scheduledAt || new Date().toISOString()) : "recently"}
               </p>
+              {space?.expiresAt && (() => {
+                const days = getDaysRemaining(space.expiresAt);
+                return (
+                  <div className="mt-3 flex flex-col items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200">
+                      <Clock className="w-3.5 h-3.5" />
+                      {days === 0 ? "Expires today" : `Expires in ${days}d`}
+                    </span>
+                    {days <= 7 && (
+                      <button
+                        onClick={handleVoteExtend}
+                        disabled={isExtending || hasVoted}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-white text-xs font-medium hover:bg-amber-500 disabled:opacity-60 transition-colors"
+                      >
+                        <Crown className="w-3.5 h-3.5" />
+                        {hasVoted
+                          ? `${space._count.extensionVotes ?? 1}/3 votes`
+                          : "Vote to extend"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Messages */}
@@ -434,6 +516,24 @@ export default function SpaceDetailPage() {
                       {g}
                     </span>
                   ))}
+                </div>
+              )}
+
+              {space?.rules && space.rules.length > 0 && (
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-semibold text-ink-500 uppercase tracking-wider">Rules</h4>
+                  {space.rules.includes("ACTIVE_READERS_ONLY") && (
+                    <div className="flex items-center gap-2 text-xs text-ink-600">
+                      <BookOpen className="w-3.5 h-3.5 text-sage-500 flex-shrink-0" />
+                      Active readers only
+                    </div>
+                  )}
+                  {space.rules.includes("SPOILER_EXPULSION") && (
+                    <div className="flex items-center gap-2 text-xs text-ink-600">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                      No spoilers — violators removed
+                    </div>
+                  )}
                 </div>
               )}
 
