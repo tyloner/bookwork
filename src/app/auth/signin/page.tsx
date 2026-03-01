@@ -180,6 +180,14 @@ function SignInForm() {
               />
             </div>
 
+            {!isRegister && (
+              <div className="text-right -mt-1">
+                <a href="/auth/forgot-password" className="text-xs text-sage-600 hover:underline">
+                  Forgot password?
+                </a>
+              </div>
+            )}
+
             {error && (
               <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                 {error}
