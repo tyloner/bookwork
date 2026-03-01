@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
+import { LiveKitRoom, AudioConference } from "@livekit/components-react";
+import "@livekit/components-styles";
 
 interface Message {
   id: string;
@@ -115,8 +117,28 @@ export default function SpaceDetailPage() {
   const [copied, setCopied] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [isExtending, setIsExtending] = useState(false);
+  const [livekitToken, setLivekitToken] = useState<string | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const userId = (session?.user as { id?: string })?.id;
+
+  const handleCallToggle = async () => {
+    if (inCall) {
+      setInCall(false);
+      setLivekitToken(null);
+      return;
+    }
+    setTokenLoading(true);
+    try {
+      const res = await fetch(`/api/spaces/${params.id}/token`, { method: "POST" });
+      if (res.ok) {
+        const { token } = await res.json();
+        setLivekitToken(token);
+        setInCall(true);
+      }
+    } catch { /* ignore */ }
+    setTokenLoading(false);
+  };
 
   const getDaysRemaining = (expiresAt: string) =>
     Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000));
@@ -285,15 +307,19 @@ export default function SpaceDetailPage() {
           <div className="flex items-center gap-1">
             {(space?.type === "CALL" || space?.type === "HYBRID") && (
               <button
-                onClick={() => setInCall(!inCall)}
+                onClick={handleCallToggle}
+                disabled={tokenLoading}
                 className={cn(
                   "p-2 rounded-lg transition-colors",
                   inCall
                     ? "bg-red-100 text-red-600 hover:bg-red-200"
-                    : "bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
+                    : "bg-emerald-100 text-emerald-600 hover:bg-emerald-200",
+                  tokenLoading && "opacity-60"
                 )}
               >
-                {inCall ? (
+                {tokenLoading ? (
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : inCall ? (
                   <PhoneOff className="w-4 h-4" />
                 ) : (
                   <Phone className="w-4 h-4" />
@@ -320,14 +346,25 @@ export default function SpaceDetailPage() {
           </div>
         </div>
 
-        {/* Call banner */}
-        {inCall && (
-          <div className="bg-emerald-500 text-white px-4 py-2 text-center text-sm font-medium animate-slide-up">
-            <div className="flex items-center justify-center gap-2">
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              In Call — {space?._count.members || 0} participants
+        {/* LiveKit audio room */}
+        {inCall && livekitToken && (
+          <LiveKitRoom
+            audio={true}
+            video={false}
+            token={livekitToken}
+            serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
+            connect={true}
+            onDisconnected={() => { setInCall(false); setLivekitToken(null); }}
+            className="bg-emerald-500"
+          >
+            <div className="px-4 py-2 text-white text-sm font-medium">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                Live audio — {space?._count.members || 0} members
+              </div>
+              <AudioConference className="lk-audio-conference-minimal" />
             </div>
-          </div>
+          </LiveKitRoom>
         )}
       </header>
 
